@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
+import LoginButton from './LoginButton';
+import { useNavigate } from 'react-router-dom';
 
 const HeroSection: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
   // Load Spline script and initialize viewer
   useEffect(() => {
     // Create script element for Spline viewer
@@ -81,7 +87,7 @@ const HeroSection: React.FC = () => {
       </div>
       
       {/* Overlay div to hide Spline badge */}
-      <div className="absolute bottom-4 right-4 w-[500px] h-[50px] bg-dark-bg z-10 pointer-events-none"></div>
+      <div className="absolute bottom-2 right-4 w-[500px] h-[50px] bg-dark-bg z-10 pointer-events-none"></div>
 
       {/* Content Overlay */}
       <div className="relative z-10 flex items-center justify-center w-full h-full">
@@ -101,10 +107,10 @@ const HeroSection: React.FC = () => {
               className="px-8 py-4 bg-gradient-to-r from-vivid-blue via-deep-purple to-accent-pink text-white font-medium rounded-full hover:shadow-xl hover:shadow-accent-pink/30 transition-all duration-300 relative overflow-hidden group"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => window.location.href = '/interpreter'}
+              onClick={() => isAuthenticated ? navigate('/interpreter') : navigate('/auth')}
             >
               <span className="relative z-10 flex items-center">
-                Get Started
+                {isAuthenticated ? 'Explore my dreams' : 'Get Started'}
                 <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>

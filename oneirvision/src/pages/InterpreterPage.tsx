@@ -1,7 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useDreamContext } from '../contexts/DreamContext';
 
 const InterpreterPage: React.FC = () => {
+  const { interpretation, interpretationLoading, interpretationError, interpretDreamAsync, addDreamEntryAsync } = useDreamContext();
+  
+  const [dreamDescription, setDreamDescription] = useState('');
+  // Add more dream examples for the placeholder
+  const dreamExamples = [
+    "I was flying over a city made of crystal, and I could see my reflection in every building. The sky was purple and filled with floating islands.",
+    "I was underwater in an ancient temple, breathing normally. Fish with human faces were guiding me to a glowing artifact.",
+    "I was in a forest where the trees had eyes and whispered secrets. The ground beneath me shifted like waves on an ocean.",
+    "I was running from shadows that kept changing shape. Every time I looked back, they resembled someone I knew.",
+    "I was in a house with infinite rooms. Each door I opened led to a memory from my childhood, but slightly altered."
+  ];
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(Math.floor(Math.random() * dreamExamples.length));
+  const [dreamDate, setDreamDate] = useState('');
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  
+  const handleMoodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = e.target.options;
+    const selectedValues: string[] = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selectedValues.push(options[i].value);
+      }
+    }
+    setSelectedMoods(selectedValues);
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dreamDescription.trim()) return;
+    
+    await interpretDreamAsync({
+      description: dreamDescription,
+      date: dreamDate || undefined,
+      mood: selectedMoods.length > 0 ? selectedMoods : undefined
+    });
+  };
   return (
     <div className="pt-20 min-h-screen bg-dark-bg">
       <div className="max-w-6xl mx-auto px-4 py-16">
@@ -23,7 +60,7 @@ const InterpreterPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="dreamDescription" className="block text-white font-medium mb-2">
                 Dream Description
@@ -32,7 +69,12 @@ const InterpreterPage: React.FC = () => {
                 id="dreamDescription"
                 rows={6}
                 className="w-full bg-dark-bg/50 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-vivid-blue focus:border-transparent transition-all"
-                placeholder="Describe your dream in as much detail as possible..."
+                placeholder={`Describe your dream in as much detail as possible...
+Example: ${dreamExamples[currentExampleIndex]}`}
+                value={dreamDescription}
+                onChange={(e) => setDreamDescription(e.target.value)}
+                onFocus={() => setCurrentExampleIndex(Math.floor(Math.random() * dreamExamples.length))}
+                required
               />
             </div>
 
@@ -45,6 +87,8 @@ const InterpreterPage: React.FC = () => {
                   type="datetime-local"
                   id="dreamDate"
                   className="w-full bg-dark-bg/50 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-vivid-blue focus:border-transparent transition-all"
+                  value={dreamDate}
+                  onChange={(e) => setDreamDate(e.target.value)}
                 />
               </div>
 
@@ -56,6 +100,8 @@ const InterpreterPage: React.FC = () => {
                   id="mood"
                   multiple
                   className="w-full bg-dark-bg/50 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-vivid-blue focus:border-transparent transition-all"
+                  value={selectedMoods}
+                  onChange={handleMoodChange}
                 >
                   <option value="happy">Happy</option>
                   <option value="sad">Sad</option>
@@ -74,16 +120,102 @@ const InterpreterPage: React.FC = () => {
               className="w-full py-3 px-6 bg-gradient-to-r from-vivid-blue to-deep-purple text-white font-medium rounded-lg hover:shadow-lg hover:shadow-deep-purple/20 transition-all duration-300"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              disabled={interpretationLoading}
             >
-              Interpret My Dream
+              {interpretationLoading ? 'Interpreting...' : 'Interpret My Dream'}
             </motion.button>
           </form>
 
-          {/* Placeholder for interpretation results */}
-          <div className="mt-10 p-6 border border-dashed border-gray-700 rounded-xl text-center">
-            <p className="text-light-gray">
-              Your dream interpretation will appear here after submission.
-            </p>
+          {/* Interpretation results */}
+          <div className="mt-10">
+            {interpretationError && (
+              <div className="p-4 bg-red-900/30 border border-red-700 rounded-lg mb-6">
+                <p className="text-red-400">{interpretationError}</p>
+              </div>
+            )}
+            
+            {interpretation ? (
+              <motion.div 
+                className="space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
+                  <h3 className="text-xl font-semibold text-white mb-3">Dream Summary</h3>
+                  <p className="text-light-gray">{interpretation.summary}</p>
+                </div>
+                
+                <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
+                  <h3 className="text-xl font-semibold text-white mb-3">Key Symbols</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {interpretation.symbols.map((symbol, index) => (
+                      <div key={index} className="p-3 bg-dark-bg/70 rounded-lg border border-gray-800">
+                        <h4 className="font-medium text-accent-pink">{symbol.symbol}</h4>
+                        <p className="text-light-gray text-sm">{symbol.meaning}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
+                  <h3 className="text-xl font-semibold text-white mb-3">AI Interpretation</h3>
+                  <div className="text-light-gray whitespace-pre-line">{interpretation.psychologicalAnalysis}</div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
+                    <h3 className="text-xl font-semibold text-white mb-3">Emotional Insights</h3>
+                    <p className="text-light-gray">{interpretation.emotionalInsights}</p>
+                  </div>
+                  
+                  <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
+                    <h3 className="text-xl font-semibold text-white mb-3">Actionable Advice</h3>
+                    <p className="text-light-gray">{interpretation.actionableAdvice}</p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center mt-6">
+                  <motion.button
+                    className="px-6 py-3 bg-gradient-to-r from-deep-purple to-accent-pink text-white font-medium rounded-full hover:shadow-lg flex items-center"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (dreamDescription && interpretation) {
+                        // Save to journal
+                        // Save the interpreted dream to journal
+                        addDreamEntryAsync({
+                          title: `Dream on ${new Date().toLocaleDateString()}`,
+                          date: dreamDate || new Date().toISOString(),
+                          description: dreamDescription,
+                          tags: selectedMoods,
+                          mood: selectedMoods.length > 0 ? selectedMoods[0] : 'neutral'
+                        }).then(() => {
+                          // Show success notification
+                          alert('Dream saved to your journal successfully!');
+                          // Navigate to journal page
+                          window.location.href = '/journal';
+                        }).catch(err => {
+                          console.error('Error saving to journal:', err);
+                          alert('Failed to save dream to journal. Please try again.');
+                        });
+                      }
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Save to Journal
+                  </motion.button>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="p-6 border border-dashed border-gray-700 rounded-xl text-center">
+                <p className="text-light-gray">
+                  Your dream interpretation will appear here after submission.
+                </p>
+              </div>
+            )}
           </div>
         </motion.div>
 

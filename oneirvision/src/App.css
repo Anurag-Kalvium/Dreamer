@@ -64,6 +64,32 @@ spline-viewer {
   box-shadow: 0 0 15px rgba(138, 43, 226, 0.6);
 }
 
+/* Dream card fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.dream-card {
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.dream-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(138, 43, 226, 0.3);
+}
+
 /* Add a dark overlay for text readability on hero section */
 .hero-overlay {
   background: linear-gradient(to bottom, rgba(11, 11, 12, 0.7) 0%, rgba(11, 11, 12, 0.5) 50%, rgba(11, 11, 12, 0.7) 100%);

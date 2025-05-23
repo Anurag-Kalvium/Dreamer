@@ -3,10 +3,14 @@ import { motion } from 'framer-motion';
 import { Transition } from '@headlessui/react';
 import { Bars3Icon as MenuIcon, XMarkIcon as XIcon } from '@heroicons/react/24/outline';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import LoginButton from './LoginButton';
+import UserProfile from './UserProfile';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, logout } = useAuth();
   
   const navigation = [
     { name: 'Home', path: '/' },
@@ -64,6 +68,16 @@ const Navbar: React.FC = () => {
               ))}
             </div>
           </div>
+          
+          {/* Authentication UI */}
+          <div className="hidden md:flex items-center ml-4">
+            {isAuthenticated ? (
+              <UserProfile />
+            ) : (
+              <LoginButton />
+            )}
+          </div>
+          
           <div className="-mr-2 flex md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -105,6 +119,27 @@ const Navbar: React.FC = () => {
                 {item.name}
               </Link>
             ))}
+            
+            {/* Mobile Authentication UI */}
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              {isAuthenticated ? (
+                <div className="px-3 py-2">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <UserProfile />
+                  </div>
+                  <button 
+                    onClick={logout}
+                    className="w-full text-left px-2 py-2 text-light-gray hover:text-white transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="px-3 py-2">
+                  <LoginButton />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Transition>

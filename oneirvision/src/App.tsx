@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import './App.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { DreamProvider } from './contexts/DreamContext';
+import { AuthProvider } from './contexts/AuthContext';
+import GoogleAuthWrapper from './components/GoogleAuthWrapper';
 
 // Page components
 import HomePage from './pages/HomePage';
@@ -10,6 +13,7 @@ import AboutPage from './pages/AboutPage';
 import InterpreterPage from './pages/InterpreterPage';
 import VisualizerPage from './pages/VisualizerPage';
 import JournalPage from './pages/JournalPage';
+import AuthPage from './pages/AuthPage';
 
 // Add Spline viewer script
 function addSplineScript() {
@@ -31,7 +35,13 @@ function App() {
 
   return (
     <Router>
-      <AppContent />
+      <GoogleAuthWrapper>
+        <AuthProvider>
+          <DreamProvider>
+            <AppContent />
+          </DreamProvider>
+        </AuthProvider>
+      </GoogleAuthWrapper>
     </Router>
   );
 }
@@ -47,6 +57,7 @@ const AppContent = () => {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/interpreter" element={<InterpreterPage />} />
           <Route path="/visualizer" element={<VisualizerPage />} />
           <Route path="/journal" element={<JournalPage />} />
