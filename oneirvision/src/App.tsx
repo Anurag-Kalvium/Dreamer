@@ -52,9 +52,9 @@ const AppContent = () => {
   const isHomePage = location.pathname === '/';
   
   return (
-    <div className="app bg-dark-bg min-h-screen text-white overflow-x-hidden">
+    <div className="app bg-dark-bg min-h-screen text-white overflow-x-hidden flex flex-col">
       <Navbar />
-      <main>
+      <main className="flex-grow">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/auth" element={<AuthPage />} />

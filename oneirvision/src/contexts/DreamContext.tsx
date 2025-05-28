@@ -1,13 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 
 // Dream interpretation model
 export interface DreamInterpretation {
   id: string;
   summary: string;
-  symbols: { symbol: string; meaning: string }[];
-  psychologicalAnalysis: string;
-  emotionalInsights: string;
-  actionableAdvice: string;
+  symbols: Array<{symbol: string; meaning: string}>;  // Changed from string to array of objects
+  psychological: string;
+  psychologicalAnalysis: string;  // Added to match usage in InterpreterPage
+  emotional: string;
+  emotionalInsights: string;  // Added to match usage in InterpreterPage
+  advice: string;
+  actionableAdvice: string;  // Added to match usage in InterpreterPage
+  createdAt: string;
 }
 
 // Dream visualization model
@@ -23,109 +27,67 @@ export interface DreamVisualization {
 export interface DreamEntry {
   id: number;
   title: string;
-  date: string;
   description: string;
+  date: string;
+  mood: string;
   tags: string[];
-  interpretation?: string;
-  mood?: string;
-  visualization?: string;
-  visualizationUrl?: string;
-  favorite?: boolean;
+  favorite: boolean;
+  interpretation: string;
+  visualization: string;
+  visualizationUrl: string;
 }
 
-// Sample dream interpretations
-const sampleInterpretations: DreamInterpretation[] = [
-  {
-    id: 'interp-1',
-    summary: 'Your dream reflects a desire for freedom and exploration of your subconscious mind.',
-    symbols: [
-      { symbol: 'Flying', meaning: 'Represents freedom, transcendence, or escape from limitations.' },
-      { symbol: 'Mountains', meaning: 'Symbolize challenges, obstacles, or higher perspective.' }
-    ],
-    psychologicalAnalysis: 'This dream suggests you may be seeking to rise above current challenges in your life and gain a broader perspective.',
-    emotionalInsights: 'The feelings of weightlessness and freedom indicate a desire to break free from constraints or responsibilities.',
-    actionableAdvice: 'Consider areas in your life where you feel restricted and explore ways to introduce more freedom and flexibility.'
-  },
-  {
-    id: 'interp-2',
-    summary: 'Your dream suggests exploration of the unknown parts of yourself and your emotions.',
-    symbols: [
-      { symbol: 'Water', meaning: 'Represents emotions, the unconscious mind, or life transitions.' },
-      { symbol: 'Ancient city', meaning: 'Symbolizes hidden knowledge, forgotten aspects of yourself, or ancestral wisdom.' }
-    ],
-    psychologicalAnalysis: 'This dream indicates you may be exploring deeper layers of your psyche or emotions that have been previously unknown to you.',
-    emotionalInsights: 'Your curiosity in the dream suggests an openness to discovering new aspects of yourself.',
-    actionableAdvice: 'Journal about what \'hidden treasures\' might exist in your subconscious that you\'d like to explore further.'
-  }
-];
+// Type for creating a new dream entry (some fields are optional)
+export type NewDreamEntry = Omit<DreamEntry, 'id'> & {
+  favorite?: boolean;
+  interpretation?: string;
+  visualization?: string;
+  visualizationUrl?: string;
+};
 
-// Sample visualizations with placeholder images
-const sampleVisualizations: DreamVisualization[] = [
-  {
-    id: 'vis-1',
-    title: 'Dream Visualization (Surreal style)',
-    description: 'Visualization based on your dream description',
-    imageUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'vis-2',
-    title: 'Dream Visualization (Abstract style)',
-    description: 'Visualization based on your dream description',
-    imageUrl: 'https://images.unsplash.com/photo-1574169208507-84376144848b?w=600',
-    createdAt: new Date().toISOString()
+// Initialize dream entries from localStorage if available
+const getInitialDreamEntries = (): DreamEntry[] => {
+  try {
+    const savedEntries = localStorage.getItem('dreamJournal');
+    if (savedEntries) {
+      const parsedEntries = JSON.parse(savedEntries) as DreamEntry[];
+      console.log('Initialized dream journal from localStorage:', parsedEntries.length, 'entries');
+      return parsedEntries;
+    }
+  } catch (error) {
+    console.error('Error loading initial dream entries:', error);
   }
-];
+  return [];
+};
 
-// Sample dream entries
-const sampleDreamEntries: DreamEntry[] = [
-  {
-    id: 1,
-    title: 'Flying over mountains',
-    date: '2025-05-15',
-    description: 'I was flying over snow-capped mountains, feeling completely free and weightless.',
-    tags: ['flying', 'freedom', 'nature'],
-    mood: 'Peaceful',
-    visualizationUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600',
-    favorite: true
-  },
-  {
-    id: 2,
-    title: 'Underwater city exploration',
-    date: '2025-05-10',
-    description: 'Discovered an ancient city beneath the ocean, with buildings made of crystal and strange sea creatures as inhabitants.',
-    tags: ['water', 'exploration', 'discovery'],
-    mood: 'Curious',
-    visualizationUrl: 'https://images.unsplash.com/photo-1574169208507-84376144848b?w=600',
-    favorite: false
-  }
-];
-
+// Context type definition
 interface DreamContextType {
   // Dream Interpretation
   interpretation: DreamInterpretation | null;
   interpretationLoading: boolean;
   interpretationError: string | null;
-  interpretDreamAsync: (dreamData: { description: string; date?: string; mood?: string[] }) => Promise<void>;
+  interpretDreamAsync: (dreamData: { description: string; date?: string; mood?: string[] }) => Promise<DreamInterpretation | null>;
   
   // Dream Visualization
   visualization: DreamVisualization | null;
   visualizationLoading: boolean;
   visualizationError: string | null;
-  generateVisualizationAsync: (dreamId: number | string, style: string) => Promise<void>;
+  generateVisualizationAsync: (dreamId: string, style: string) => Promise<DreamVisualization | null>;
   
   // Dream Journal
   dreamJournal: DreamEntry[];
   journalLoading: boolean;
   journalError: string | null;
   fetchDreamJournal: () => Promise<void>;
-  addDreamEntryAsync: (entry: Omit<DreamEntry, 'id'>) => Promise<DreamEntry>;
-  updateDreamEntryAsync: (entry: DreamEntry) => Promise<DreamEntry>;
+  addDreamEntryAsync: (entry: NewDreamEntry) => Promise<DreamEntry | null>;
+  updateDreamEntryAsync: (entry: DreamEntry) => Promise<DreamEntry | null>;
   deleteDreamEntryAsync: (id: number) => Promise<boolean>;
 }
 
+// Create the context
 const DreamContext = createContext<DreamContextType | undefined>(undefined);
 
+// Custom hook to use the dream context
 export const useDreamContext = () => {
   const context = useContext(DreamContext);
   if (context === undefined) {
@@ -137,106 +99,6 @@ export const useDreamContext = () => {
 interface DreamProviderProps {
   children: ReactNode;
 }
-
-// Helper function to parse Gemini's response into sections
-const parseGeminiResponse = (text: string) => {
-  const sections: {
-    summary?: string;
-    symbols?: string;
-    psychological?: string;
-    emotional?: string;
-    advice?: string;
-  } = {};
-  
-  // Try to extract sections based on numbered list or headers
-  if (text.includes('1. Overall meaning') || text.includes('Overall meaning')) {
-    const lines = text.split('\n');
-    let currentSection: keyof typeof sections | '' = '';
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      if (line.includes('Overall meaning') || (line.includes('1.') && line.toLowerCase().includes('meaning'))) {
-        currentSection = 'summary';
-        sections.summary = '';
-      } else if (line.includes('Key symbols') || (line.includes('2.') && line.toLowerCase().includes('symbol'))) {
-        currentSection = 'symbols';
-        sections.symbols = '';
-      } else if (line.includes('Psychological insights') || (line.includes('3.') && line.toLowerCase().includes('psychological'))) {
-        currentSection = 'psychological';
-        sections.psychological = '';
-      } else if (line.includes('Emotional themes') || (line.includes('4.') && line.toLowerCase().includes('emotion'))) {
-        currentSection = 'emotional';
-        sections.emotional = '';
-      } else if (line.includes('Actionable advice') || (line.includes('5.') && line.toLowerCase().includes('advice'))) {
-        currentSection = 'advice';
-        sections.advice = '';
-      } else if (currentSection && line) {
-        // Append content to the current section
-        if (currentSection) {
-          sections[currentSection] = (sections[currentSection] || '') + (sections[currentSection] ? '\n' : '') + line;
-        }
-      }
-    }
-  }
-  
-  return sections;
-};
-
-// Helper function to extract symbols from the Gemini response
-const extractSymbols = (symbolText: string): { symbol: string; meaning: string }[] => {
-  const symbols: { symbol: string; meaning: string }[] = [];
-  
-  // Try to extract symbols and their meanings
-  try {
-    // Look for patterns like 'Symbol: Meaning' or '- Symbol: Meaning'
-    const symbolPattern = /[-•]?\s*([^:]+):\s*([^\n]+)/g;
-    let match;
-    
-    while ((match = symbolPattern.exec(symbolText)) !== null) {
-      const symbol = match[1].trim();
-      const meaning = match[2].trim();
-      
-      if (symbol && meaning) {
-        symbols.push({ symbol, meaning });
-      }
-    }
-    
-    // If no symbols were found using the pattern, create default ones
-    if (symbols.length === 0) {
-      // Extract potential symbols from the text
-      const lines = symbolText.split('\n');
-      for (let i = 0; i < Math.min(lines.length, 3); i++) {
-        const line = lines[i].trim();
-        if (line) {
-          const parts = line.split(' - ');
-          if (parts.length > 1) {
-            symbols.push({ symbol: parts[0].trim(), meaning: parts[1].trim() });
-          } else {
-            // Just use the first few words as the symbol name
-            const words = line.split(' ');
-            if (words.length > 3) {
-              symbols.push({ 
-                symbol: words.slice(0, 2).join(' '), 
-                meaning: words.slice(2).join(' ')
-              });
-            }
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error extracting symbols:', error);
-  }
-  
-  // If still no symbols, create default ones
-  if (symbols.length === 0) {
-    symbols.push({ symbol: 'Dream Elements', meaning: 'Represent aspects of your subconscious mind' });
-    symbols.push({ symbol: 'Dream Setting', meaning: 'Reflects your emotional state and current life situation' });
-  }
-  
-  return symbols;
-};
 
 export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
   // Dream Interpretation state
@@ -250,11 +112,33 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
   const [visualizationError, setVisualizationError] = useState<string | null>(null);
   
   // Dream Journal state
-  const [dreamJournal, setDreamJournal] = useState<DreamEntry[]>(sampleDreamEntries);
+  const [dreamJournal, setDreamJournal] = useState<DreamEntry[]>(getInitialDreamEntries());
   const [journalLoading, setJournalLoading] = useState<boolean>(false);
   const [journalError, setJournalError] = useState<string | null>(null);
   
-  // Fetch dream journal on component mount
+  // Fetch dream journal entries
+  const fetchDreamJournal = async () => {
+    setJournalLoading(true);
+    setJournalError(null);
+    
+    try {
+      // In a real app, this would be an API call
+      // For now, we're just using localStorage
+      const savedEntries = localStorage.getItem('dreamJournal');
+      if (savedEntries) {
+        const parsedEntries = JSON.parse(savedEntries) as DreamEntry[];
+        setDreamJournal(parsedEntries);
+        console.log('Fetched dream journal:', parsedEntries.length, 'entries');
+      }
+    } catch (error) {
+      console.error('Error fetching dream journal:', error);
+      setJournalError('Failed to load your dream journal. Please try again.');
+    } finally {
+      setJournalLoading(false);
+    }
+  };
+  
+  // Load dream journal on mount
   useEffect(() => {
     fetchDreamJournal();
   }, []);
@@ -265,7 +149,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     setInterpretationError(null);
     
     try {
-      console.log('Sending dream interpretation request to backend:', dreamData.description);
+      console.log('Interpreting dream:', dreamData);
       
       // Call the backend API
       const response = await fetch('http://localhost:5000/interpret', {
@@ -273,109 +157,183 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ dreamText: dreamData.description }),
+        body: JSON.stringify({
+          dreamText: dreamData.description
+        }),
       });
       
       // Handle non-OK responses
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || `Server responded with status: ${response.status}`;
-        console.error('Backend API error:', errorMessage);
-        throw new Error(errorMessage);
+        const errorText = await response.text();
+        console.error(`API error: ${response.status} - ${errorText}`);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
       
+      // Parse the response
       const data = await response.json();
+      console.log('Received interpretation from backend:', data);
       
-      // Parse the interpretation from the Gemini API response
-      const aiInterpretation = data.interpretation;
+      if (!data || !data.interpretation) {
+        console.error('Invalid response from backend:', data);
+        throw new Error('Invalid response from interpretation API');
+      }
       
-      // Extract sections from the Gemini response
-      // Attempt to parse the structured response from Gemini
-      const sections = parseGeminiResponse(aiInterpretation);
+      // Parse the markdown response from the API
+      const interpretation = data.interpretation;
       
-      // Extract symbols from the response
-      const symbols = extractSymbols(sections.symbols || aiInterpretation);
+      // Extract sections from the markdown
+      const summaryMatch = interpretation.match(/## 1\. Overall Meaning\s+([\s\S]*?)(?=##|$)/);
+      const symbolsMatch = interpretation.match(/## 2\. Key Symbols[\s\S]*?((?:-\s+\*\*.*?\*\*:[\s\S]*?)+)(?=##|$)/);
+      const psychologicalMatch = interpretation.match(/## 3\. Psychological Insights\s+([\s\S]*?)(?=##|$)/);
+      const emotionalMatch = interpretation.match(/## 4\. Emotional Themes\s+([\s\S]*?)(?=##|$)/);
+      const adviceMatch = interpretation.match(/## 5\. Actionable Advice\s+([\s\S]*?)(?=##|$)/);
       
-      const result: DreamInterpretation = {
+      // Extract symbols as structured data
+      const symbolsText = symbolsMatch ? symbolsMatch[1] : '';
+      const symbolsRegex = /-\s+\*\*([^*]+)\*\*:\s+([^\n]+)/g;
+      const symbols = [];
+      let match;
+      
+      while ((match = symbolsRegex.exec(symbolsText)) !== null) {
+        symbols.push({
+          symbol: match[1].trim(),
+          meaning: match[2].trim()
+        });
+      }
+      
+      // Create a new interpretation object
+      const newInterpretation: DreamInterpretation = {
         id: `interp-${Date.now()}`,
-        summary: sections.summary || aiInterpretation.split('.')[0] + '.',  // First sentence as summary if no clear summary section
-        symbols: symbols,
-        psychologicalAnalysis: sections.psychological || aiInterpretation,
-        emotionalInsights: sections.emotional || 'Reflect on the emotions present in your dream',
-        actionableAdvice: sections.advice || 'Consider how the symbols in your dream relate to your waking life'
+        summary: summaryMatch ? summaryMatch[1].trim() : 'No summary available',
+        symbols: symbols.length > 0 ? symbols : [
+          { symbol: 'Dream Symbol', meaning: 'No symbols analysis available' }
+        ],
+        psychological: psychologicalMatch ? psychologicalMatch[1].trim() : 'No psychological analysis available',
+        psychologicalAnalysis: psychologicalMatch ? psychologicalMatch[1].trim() : 'No psychological analysis available',
+        emotional: emotionalMatch ? emotionalMatch[1].trim() : 'No emotional insights available',
+        emotionalInsights: emotionalMatch ? emotionalMatch[1].trim() : 'No emotional insights available',
+        advice: adviceMatch ? adviceMatch[1].trim() : 'No advice available',
+        actionableAdvice: adviceMatch ? adviceMatch[1].trim() : 'No advice available',
+        createdAt: new Date().toISOString()
       };
       
-      setInterpretation(result);
+      // Update state with the new interpretation
+      setInterpretation(newInterpretation);
+      return newInterpretation;
+      
     } catch (error) {
-      setInterpretationError('Failed to interpret dream. Please try again.');
       console.error('Dream interpretation error:', error);
+      setInterpretationError('Failed to interpret your dream. Please try again.');
+      return null;
     } finally {
       setInterpretationLoading(false);
     }
   };
   
-  // Dream Visualization function - simplified without API calls
-  const generateVisualizationAsync = async (dreamId: number | string, style: string) => {
+  // Dream Visualization function - using Python Flask API with Gemini
+  const generateVisualizationAsync = async (dreamId: string, style: string) => {
     setVisualizationLoading(true);
     setVisualizationError(null);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Find the dream by ID
+      const dream = dreamJournal.find(d => d.id.toString() === dreamId);
       
-      // Return a random sample visualization
-      const randomIndex = Math.floor(Math.random() * sampleVisualizations.length);
-      const result = {
-        ...sampleVisualizations[randomIndex],
-        id: `vis-${Date.now()}`,
-        title: `Dream Visualization (${style} style)`
+      if (!dream) {
+        throw new Error('Dream not found');
+      }
+      
+      console.log(`Generating visualization for dream:`, dream.title);
+      
+      // Call the Python Flask API for Gemini image generation
+      // Note: style parameter is kept in the function signature for backward compatibility
+      console.log(`Using Gemini to generate visualization for dream: ${dream.title}`);
+      
+      const response = await fetch('http://localhost:5001/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_prompt: dream.description
+        }),
+      });
+      
+      // Handle non-OK responses
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error: ${response.status} - ${errorText}`);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+      
+      // Parse the response
+      const data = await response.json();
+      console.log('Received visualization from Gemini API:', data);
+      
+      if (!data || !data.visualization) {
+        console.error('Invalid response from Gemini API:', data);
+        throw new Error('Invalid response from visualization API');
+      }
+      
+      // Create a new visualization object
+      const newVisualization: DreamVisualization = {
+        id: data.visualization.id || `vis-${Date.now()}`,
+        title: data.visualization.title || `Dream Visualization (${style} style)`,
+        description: data.visualization.description || 'AI-generated visualization based on your dream',
+        imageUrl: data.visualization.imageUrl,
+        createdAt: new Date().toISOString()
       };
       
-      setVisualization(result);
-    } catch (error) {
-      setVisualizationError('Failed to generate visualization. Please try again.');
+      // Update the dream entry with the visualization URL
+      const updatedDream = {
+        ...dream,
+        visualizationUrl: newVisualization.imageUrl
+      };
+      
+      // Update the dream in the journal
+      await updateDreamEntryAsync(updatedDream);
+      
+      // Update state with the new visualization
+      setVisualization(newVisualization);
+      return newVisualization;
+      
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to generate visualization';
       console.error('Dream visualization error:', error);
+      setVisualizationError(errorMessage);
+      return null;
     } finally {
       setVisualizationLoading(false);
     }
   };
   
-  // Dream Journal functions - simplified without API calls or localStorage
-  const fetchDreamJournal = async () => {
-    setJournalLoading(true);
-    setJournalError(null);
-    
-    try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // We're already using the sample data from state initialization
-      // This is just to simulate the API call
-    } catch (error) {
-      setJournalError('Failed to fetch dream journal. Please try again.');
-      console.error('Dream journal fetch error:', error);
-    } finally {
-      setJournalLoading(false);
-    }
-  };
-  
-  const addDreamEntryAsync = async (entry: Omit<DreamEntry, 'id'>) => {
+  const addDreamEntryAsync = async (entry: NewDreamEntry) => {
     try {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
       
+      // Create a new dream entry with an ID
       const newEntry: DreamEntry = {
         ...entry,
         id: Date.now(),
-        favorite: false,
-        visualizationUrl: entry.visualizationUrl || ''
+        favorite: entry.favorite !== undefined ? entry.favorite : false,
+        visualizationUrl: entry.visualizationUrl || '',
+        tags: entry.tags || [],
+        interpretation: entry.interpretation || '',
+        visualization: entry.visualization || '',
+        mood: entry.mood || ''
       };
       
-      setDreamJournal(prevJournal => [newEntry, ...prevJournal]);
+      // Update state and localStorage
+      const updatedJournal = [newEntry, ...dreamJournal];
+      setDreamJournal(updatedJournal);
+      localStorage.setItem('dreamJournal', JSON.stringify(updatedJournal));
+      
+      console.log('Added new dream entry:', newEntry.title);
       return newEntry;
     } catch (error) {
-      console.error('Add dream entry error:', error);
-      throw error;
+      console.error('Error adding dream entry:', error);
+      return null;
     }
   };
   
@@ -384,31 +342,45 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 600));
       
-      setDreamJournal(prevJournal => 
-        prevJournal.map(item => item.id === entry.id ? entry : item)
+      // Find and update the entry
+      const updatedJournal = dreamJournal.map(item => 
+        item.id === entry.id ? entry : item
       );
       
+      // Update state and localStorage
+      setDreamJournal(updatedJournal);
+      localStorage.setItem('dreamJournal', JSON.stringify(updatedJournal));
+      
+      console.log('Updated dream entry:', entry.title);
       return entry;
     } catch (error) {
-      console.error('Update dream entry error:', error);
-      throw error;
+      console.error('Error updating dream entry:', error);
+      return null;
     }
   };
   
   const deleteDreamEntryAsync = async (id: number) => {
     try {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 700));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      setDreamJournal(prevJournal => prevJournal.filter(item => item.id !== id));
+      // Filter out the entry to delete
+      const updatedJournal = dreamJournal.filter(item => item.id !== id);
+      
+      // Update state and localStorage
+      setDreamJournal(updatedJournal);
+      localStorage.setItem('dreamJournal', JSON.stringify(updatedJournal));
+      
+      console.log('Deleted dream entry with ID:', id);
       return true;
     } catch (error) {
-      console.error('Delete dream entry error:', error);
-      throw error;
+      console.error('Error deleting dream entry:', error);
+      return false;
     }
   };
   
-  const value = {
+  // Context value
+  const contextValue: DreamContextType = {
     // Dream Interpretation
     interpretation,
     interpretationLoading,
@@ -428,8 +400,12 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     fetchDreamJournal,
     addDreamEntryAsync,
     updateDreamEntryAsync,
-    deleteDreamEntryAsync,
+    deleteDreamEntryAsync
   };
   
-  return <DreamContext.Provider value={value}>{children}</DreamContext.Provider>;
+  return (
+    <DreamContext.Provider value={contextValue}>
+      {children}
+    </DreamContext.Provider>
+  );
 };

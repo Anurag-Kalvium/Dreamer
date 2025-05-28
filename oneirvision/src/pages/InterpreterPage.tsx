@@ -189,7 +189,11 @@ Example: ${dreamExamples[currentExampleIndex]}`}
                           date: dreamDate || new Date().toISOString(),
                           description: dreamDescription,
                           tags: selectedMoods,
-                          mood: selectedMoods.length > 0 ? selectedMoods[0] : 'neutral'
+                          mood: selectedMoods.length > 0 ? selectedMoods[0] : 'neutral',
+                          favorite: false,
+                          interpretation: interpretation.summary,
+                          visualization: '',
+                          visualizationUrl: ''
                         }).then(() => {
                           // Show success notification
                           alert('Dream saved to your journal successfully!');

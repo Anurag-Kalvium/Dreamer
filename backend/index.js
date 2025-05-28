@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const fetch = require('node-fetch'); // Add node-fetch for direct API calls
+const axios = require('axios'); // Add axios for Stability AI API calls
+const FormData = require('form-data'); // Add form-data for Stability AI API calls
 dotenv.config();
 
 const app = express();
@@ -191,6 +193,8 @@ Provide a detailed analysis including:
     res.status(500).json({ error: 'Failed to interpret dream: ' + err.message });
   }
 });
+
+// Visualization endpoint removed - will be handled by Python service
 
 const PORT = 5000;
 app.listen(PORT, () => {

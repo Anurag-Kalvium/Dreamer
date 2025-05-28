@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDreamContext, DreamEntry } from '../contexts/DreamContext';
+import { useDreamContext, DreamEntry, NewDreamEntry } from '../contexts/DreamContext';
 
 const JournalPage: React.FC = () => {
   const { dreamJournal, journalLoading, journalError, fetchDreamJournal, addDreamEntryAsync, updateDreamEntryAsync, deleteDreamEntryAsync } = useDreamContext();
@@ -10,12 +10,16 @@ const JournalPage: React.FC = () => {
   
   // New dream entry form state
   const [showNewDreamForm, setShowNewDreamForm] = useState(false);
-  const [newDream, setNewDream] = useState<Omit<DreamEntry, 'id'>>({ 
+  const [newDream, setNewDream] = useState<NewDreamEntry>({ 
     title: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
     tags: [],
-    mood: ''
+    mood: '',
+    favorite: false,
+    interpretation: '',
+    visualization: '',
+    visualizationUrl: ''
   });
   const [tagInput, setTagInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -93,19 +97,27 @@ const JournalPage: React.FC = () => {
     }
     
     try {
+      console.log('Submitting new dream:', newDream);
+      
       // Ensure date is in the correct format
       const formattedDream = {
         ...newDream,
         date: new Date(newDream.date).toISOString().split('T')[0],
         // Add the required properties based on our updated DreamEntry interface
         favorite: false,
-        visualizationUrl: ''
+        visualizationUrl: '',
+        // Ensure all required fields are present
+        interpretation: '',
+        visualization: ''
       };
       
-      await addDreamEntryAsync(formattedDream);
+      // Add the new dream entry
+      const savedDream = await addDreamEntryAsync(formattedDream);
+      console.log('Dream saved successfully:', savedDream);
       
-      // Refresh the journal to show the new entry
-      await fetchDreamJournal();
+      // No need to refresh the journal as addDreamEntryAsync already updates the state and localStorage
+      // The line below is removed because it could potentially overwrite our new entry
+      // await fetchDreamJournal();
       
       // Reset form
       setNewDream({
@@ -113,11 +125,18 @@ const JournalPage: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         description: '',
         tags: [],
-        mood: ''
+        mood: '',
+        favorite: false,
+        interpretation: '',
+        visualization: '',
+        visualizationUrl: ''
       });
       
       // Close the form modal
       setShowNewDreamForm(false);
+      
+      // Show a success message
+      alert('Dream saved successfully!');
     } catch (error) {
       setFormError('Failed to save dream entry. Please try again.');
       console.error('Error saving dream:', error);

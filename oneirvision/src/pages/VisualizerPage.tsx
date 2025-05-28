@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDreamContext, DreamVisualization } from '../contexts/DreamContext';
 
+// This empty export makes TypeScript recognize this file as a module
+export {};
+
 const VisualizerPage: React.FC = () => {
   const { dreamJournal, visualization, visualizationLoading, visualizationError, generateVisualizationAsync, updateDreamEntryAsync } = useDreamContext();
   
@@ -75,13 +78,35 @@ const VisualizerPage: React.FC = () => {
                   <p className="text-light-gray">Generating your visualization...</p>
                 </div>
               </div>
+            ) : visualizationError ? (
+              <div className="relative aspect-video rounded-xl overflow-hidden flex items-center justify-center bg-dark-bg/80">
+                <div className="flex flex-col items-center text-center p-8">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h3 className="text-xl font-bold text-white mb-2">Error Generating Visualization</h3>
+                  <p className="text-light-gray mb-4">{visualizationError}</p>
+                  <p className="text-light-gray mb-6">Please try again or try a different style.</p>
+                </div>
+              </div>
             ) : visualizations.length > 0 ? (
               <div className="relative aspect-video rounded-xl overflow-hidden">
-                <img 
-                  src={visualizations[currentIndex].imageUrl} 
-                  alt={visualizations[currentIndex].title}
-                  className="w-full h-full object-cover"
-                />
+                {visualizations[currentIndex].imageUrl ? (
+                  <img 
+                    src={visualizations[currentIndex].imageUrl} 
+                    alt={visualizations[currentIndex].title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Image failed to load:', e);
+                      // Set a fallback image if the main image fails to load
+                      e.currentTarget.src = `https://via.placeholder.com/800x600?text=${encodeURIComponent('Dream Visualization')}`; 
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-dark-bg/50">
+                    <p className="text-light-gray">Image not available</p>
+                  </div>
+                )}
               
                 {/* Gradient overlay for better text readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-dark-bg/80 to-transparent"></div>
