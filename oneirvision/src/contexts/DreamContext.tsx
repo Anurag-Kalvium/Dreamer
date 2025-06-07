@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Dream interpretation model
 export interface DreamInterpretation {
@@ -230,7 +230,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     }
   };
   
-  // Dream Visualization function - using Python Flask API with Gemini
+  // Dream Visualization function - using Hugging Face API directly
   const generateVisualizationAsync = async (dreamId: string, style: string) => {
     setVisualizationLoading(true);
     setVisualizationError(null);
@@ -245,42 +245,38 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       
       console.log(`Generating visualization for dream:`, dream.title);
       
-      // Call the Python Flask API for Gemini image generation
-      // Note: style parameter is kept in the function signature for backward compatibility
-      console.log(`Using Gemini to generate visualization for dream: ${dream.title}`);
-      
-      const response = await fetch('http://localhost:5001/generate-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_prompt: dream.description
-        }),
-      });
+      // Call Hugging Face API directly
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer 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',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            inputs: `A surreal digital artwork in ${style} style depicting: ${dream.description}` 
+          }),
+        }
+      );
       
       // Handle non-OK responses
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`API error: ${response.status} - ${errorText}`);
-        throw new Error(`API error: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to generate image. Status: ${response.status}`);
       }
       
-      // Parse the response
-      const data = await response.json();
-      console.log('Received visualization from Gemini API:', data);
-      
-      if (!data || !data.visualization) {
-        console.error('Invalid response from Gemini API:', data);
-        throw new Error('Invalid response from visualization API');
-      }
+      // Get the image blob
+      const blob = await response.blob();
+      const imageObjectUrl = URL.createObjectURL(blob);
       
       // Create a new visualization object
       const newVisualization: DreamVisualization = {
-        id: data.visualization.id || `vis-${Date.now()}`,
-        title: data.visualization.title || `Dream Visualization (${style} style)`,
-        description: data.visualization.description || 'AI-generated visualization based on your dream',
-        imageUrl: data.visualization.imageUrl,
+        id: `vis-${Date.now()}`,
+        title: `Dream Visualization (${style} style)`,
+        description: `AI-generated visualization based on your dream about ${dream.title}`,
+        imageUrl: imageObjectUrl,
         createdAt: new Date().toISOString()
       };
       

@@ -1,253 +1,381 @@
-import React, { useState, useEffect } from 'react';
-import { useDreamContext, DreamVisualization } from '../contexts/DreamContext';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import { useDreamContext } from '../contexts/DreamContext';
 
-// This empty export makes TypeScript recognize this file as a module
-export {};
+// Define interfaces
+interface DreamEntry {
+  id: string | number;
+  title?: string;
+  description: string;
+  date: string | Date;
+  visualizationUrl?: string;
+  favorite?: boolean;
+}
+
+interface DreamVisualization {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  createdAt: string;
+}
 
 const VisualizerPage: React.FC = () => {
-  const { dreamJournal, visualization, visualizationLoading, visualizationError, generateVisualizationAsync, updateDreamEntryAsync } = useDreamContext();
+  const { dreamJournal, updateDreamEntryAsync } = useDreamContext();
   
   // Store generated visualizations
   const [visualizations, setVisualizations] = useState<DreamVisualization[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  
-  // Selected dream and style for generating new visualizations
   const [selectedDreamId, setSelectedDreamId] = useState<string>('');
-  const [selectedStyle, setSelectedStyle] = useState<string>('Surreal');
+  const [prompt, setPrompt] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [status, setStatus] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [currentImage, setCurrentImage] = useState<string>('');
 
-  // Check for URL parameters on component mount
+  // Close modal when clicking outside the image
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const dreamId = params.get('dreamId');
-    const style = params.get('style');
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isModalOpen && target.classList.contains('modal-overlay')) {
+        closeModal();
+      }
+    };
     
-    if (dreamId && style) {
-      // Auto-select the dream and style from URL parameters
-      setSelectedDreamId(dreamId);
-      setSelectedStyle(style);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isModalOpen]);
+
+  // Handle image generation
+  const generateImage = async (): Promise<void> => {
+    if (!prompt) {
+      setStatus('❌ Please enter a prompt or select a dream');
+      return;
+    }
+
+    setLoading(true);
+    setStatus('Generating image...');
+
+    try {
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer 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',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ inputs: prompt }),
+        }
+      ) as Response;
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image');
+      }
+
+      const blob: Blob = await response.blob();
+      const imageUrl: string = URL.createObjectURL(blob);
       
-      // Auto-generate visualization if parameters are provided
-      generateVisualizationAsync(dreamId, style);
-    }
-  }, [generateVisualizationAsync]);
+      const newVisualization: DreamVisualization = {
+        id: Date.now().toString(),
+        title: `Visualization: ${prompt.slice(0, 40)}${prompt.length > 40 ? '...' : ''}`,
+        description: prompt,
+        imageUrl,
+        createdAt: new Date().toISOString()
+      };
 
-  // Update visualizations when a new one is generated
-  useEffect(() => {
-    if (visualization) {
-      // Add the new visualization to the beginning of the array
-      setVisualizations(prev => [visualization, ...prev]);
-      setCurrentIndex(0); // Show the new visualization
+      setVisualizations((prev: DreamVisualization[]) => [newVisualization, ...prev]);
+      setCurrentIndex(0);
+      setStatus('✅ Image generated successfully!');
+    } catch (error) {
+      console.error('Error generating image:', error);
+      setStatus('❌ Error generating image. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [visualization]);
-
-  const nextVisualization = () => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % visualizations.length);
   };
 
-  const prevVisualization = () => {
-    setCurrentIndex((prevIndex) => 
+  // Navigation between visualizations
+  const nextVisualization = (): void => {
+    setCurrentIndex((prevIndex: number) => (prevIndex + 1) % visualizations.length);
+  };
+
+  const prevVisualization = (): void => {
+    setCurrentIndex((prevIndex: number) => 
       prevIndex === 0 ? visualizations.length - 1 : prevIndex - 1
     );
   };
   
-  // Handle generating a new visualization
-  const handleGenerateVisualization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDreamId) return;
+  // Update prompt when dream is selected
+  useEffect((): void => {
+    if (selectedDreamId) {
+      const selectedDream = dreamJournal.find((dream: DreamEntry) => 
+        dream.id.toString() === selectedDreamId
+      );
+      if (selectedDream) {
+        setPrompt(selectedDream.description);
+      }
+    }
+  }, [selectedDreamId, dreamJournal]);
+
+  // Handle saving to journal
+  const handleSaveToJournal = (): void => {
+    if (!selectedDreamId) {
+      alert('Please select a dream from your journal first.');
+      return;
+    }
     
-    await generateVisualizationAsync(selectedDreamId, selectedStyle);
+    const selectedDream = dreamJournal.find((dream: DreamEntry) => 
+      dream.id.toString() === selectedDreamId
+    ) as DreamEntry;
+    
+    if (selectedDream && visualizations[currentIndex]?.imageUrl) {
+      const updatedDream: DreamEntry = {
+        ...selectedDream,
+        visualizationUrl: visualizations[currentIndex].imageUrl
+      };
+      
+      updateDreamEntryAsync(updatedDream as any)
+        .then((): void => {
+          alert('Visualization saved to your dream journal!');
+        })
+        .catch((err: Error): void => {
+          console.error('Error saving visualization:', err);
+          alert('Failed to save visualization. Please try again.');
+        });
+    } else {
+      alert('No visualization to save. Please generate an image first.');
+    }
+  };
+
+  // Handle image click to open modal
+  const handleImageClick = (imageUrl: string) => {
+    setCurrentImage(imageUrl);
+    setIsModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Close modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    document.body.style.overflow = 'auto';
   };
 
   return (
-    <div className="pt-20 min-h-screen bg-dark-bg">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold gradient-text mb-4">Dream Visualizer</h1>
-          <p className="text-light-gray text-lg max-w-3xl mx-auto">
-            Transform your interpreted dreams into stunning visual representations.
+    <div className="min-h-screen bg-gradient-to-br from-dark-bg to-gray-900 pt-20 pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-vivid-blue to-teal-400 mb-4">
+            Dream Visualizer
+          </h1>
+          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+            Transform your dreams into stunning visual representations
           </p>
         </div>
 
-        {/* Visualization Carousel */}
-        <div className="relative max-w-4xl mx-auto">
-          <div className="glassmorphism rounded-2xl p-6 border border-white/10 overflow-hidden">
-            {visualizationLoading ? (
-              <div className="relative aspect-video rounded-xl overflow-hidden flex items-center justify-center bg-dark-bg/80">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 border-t-4 border-vivid-blue border-solid rounded-full animate-spin mb-4"></div>
-                  <p className="text-light-gray">Generating your visualization...</p>
-                </div>
-              </div>
-            ) : visualizationError ? (
-              <div className="relative aspect-video rounded-xl overflow-hidden flex items-center justify-center bg-dark-bg/80">
-                <div className="flex flex-col items-center text-center p-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <h3 className="text-xl font-bold text-white mb-2">Error Generating Visualization</h3>
-                  <p className="text-light-gray mb-4">{visualizationError}</p>
-                  <p className="text-light-gray mb-6">Please try again or try a different style.</p>
-                </div>
-              </div>
-            ) : visualizations.length > 0 ? (
-              <div className="relative aspect-video rounded-xl overflow-hidden">
-                {visualizations[currentIndex].imageUrl ? (
-                  <img 
-                    src={visualizations[currentIndex].imageUrl} 
-                    alt={visualizations[currentIndex].title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('Image failed to load:', e);
-                      // Set a fallback image if the main image fails to load
-                      e.currentTarget.src = `https://via.placeholder.com/800x600?text=${encodeURIComponent('Dream Visualization')}`; 
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-dark-bg/50">
-                    <p className="text-light-gray">Image not available</p>
-                  </div>
-                )}
-              
-                {/* Gradient overlay for better text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-dark-bg/80 to-transparent"></div>
-                
-                <div className="absolute bottom-0 left-0 p-6 w-full">
-                  <h3 className="text-xl font-bold text-white mb-2">{visualizations[currentIndex].title}</h3>
-                  <p className="text-light-gray mb-4">{visualizations[currentIndex].description}</p>
-                  
-                  {/* Navigation buttons */}
-                  {visualizations.length > 1 && (
-                    <div className="flex space-x-3">
-                      <button 
-                        onClick={prevVisualization}
-                        className="p-2 bg-dark-bg/50 rounded-full hover:bg-dark-bg/80 transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button 
-                        onClick={nextVisualization}
-                        className="p-2 bg-dark-bg/50 rounded-full hover:bg-dark-bg/80 transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="aspect-video rounded-xl overflow-hidden flex items-center justify-center bg-dark-bg/50">
-                <div className="text-center p-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <h3 className="text-xl font-bold text-white mb-2">No Visualizations Yet</h3>
-                  <p className="text-light-gray mb-6">Generate your first dream visualization using the form below.</p>
-                </div>
-              </div>
-            )}
-            
-            {/* Save to Journal button */}
-            {visualizations.length > 0 && !visualizationLoading && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  className="flex items-center px-4 py-2 bg-dark-bg/50 text-white rounded-lg hover:bg-dark-bg/80 transition-colors"
-                  onClick={() => {
-                    const selectedDream = dreamJournal.find(dream => dream.id.toString() === selectedDreamId);
-                    if (selectedDream) {
-                      const updatedDream = {
-                        ...selectedDream,
-                        visualizationUrl: visualizations[currentIndex].imageUrl
-                      };
-                      updateDreamEntryAsync(updatedDream)
-                        .then(() => {
-                          alert('Visualization saved to your dream journal!');
-                        })
-                        .catch(err => {
-                          console.error('Error saving visualization:', err);
-                          alert('Failed to save visualization. Please try again.');
-                        });
-                    } else {
-                      alert('Please select a dream from your journal first.');
-                    }
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  </svg>
-                  Save to Journal
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Generate New Visualization Section */}
-        <div className="mt-20 max-w-3xl mx-auto glassmorphism rounded-2xl p-8 border border-white/10">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Generate New Visualization</h2>
-          
-          <form onSubmit={handleGenerateVisualization} className="space-y-6">
-            <div>
-              <label className="block text-white font-medium mb-2">Select a Dream to Visualize</label>
-              <select 
-                className="w-full bg-dark-bg/50 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-vivid-blue focus:border-transparent transition-all"
+        {/* Controls Section */}
+        <div className="glassmorphism rounded-xl p-6 mb-8 border border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            {/* Dream Selection */}
+            <div className="space-y-2">
+              <label htmlFor="dream-select" className="block text-sm font-medium text-gray-300">
+                Select a Dream
+              </label>
+              <select
+                id="dream-select"
                 value={selectedDreamId}
                 onChange={(e) => setSelectedDreamId(e.target.value)}
-                required
+                className="w-full px-4 py-3 bg-dark-bg/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-vivid-blue focus:border-transparent"
               >
-                <option value="">-- Select from your dream journal --</option>
-                {dreamJournal.map(dream => (
-                  <option key={dream.id} value={dream.id}>
-                    {dream.title} ({new Date(dream.date).toLocaleDateString()})
+                <option value="">Choose a dream...</option>
+                {dreamJournal.map((dream: DreamEntry) => (
+                  <option key={dream.id.toString()} value={dream.id.toString()}>
+                    {dream.title || `Dream from ${new Date(dream.date).toLocaleDateString()}`}
                   </option>
                 ))}
               </select>
             </div>
-            
-            <div>
-              <label className="block text-white font-medium mb-2">Visualization Style</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {['Surreal', 'Realistic', 'Abstract', 'Anime'].map((style) => (
-                  <div key={style} className="relative">
-                    <input 
-                      type="radio" 
-                      id={style} 
-                      name="style" 
-                      value={style}
-                      checked={selectedStyle === style}
-                      onChange={() => setSelectedStyle(style)}
-                      className="peer absolute opacity-0" 
-                    />
-                    <label 
-                      htmlFor={style}
-                      className="block p-3 text-center border border-gray-700 rounded-lg cursor-pointer text-light-gray peer-checked:border-accent-pink peer-checked:text-white peer-checked:bg-dark-bg/50 hover:bg-dark-bg/30 transition-all"
-                    >
-                      {style}
-                    </label>
+
+            {/* Prompt Input */}
+            <div className="space-y-2">
+              <label htmlFor="prompt" className="block text-sm font-medium text-gray-300">
+                Or enter a prompt
+              </label>
+              <input
+                type="text"
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe the image you want to generate..."
+                className="w-full px-4 py-3 bg-dark-bg/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-vivid-blue focus:border-transparent"
+              />
+            </div>
+
+            {/* Generate Button */}
+            <div className="flex flex-col space-y-2">
+              <button
+                onClick={generateImage}
+                disabled={loading || (!prompt && !selectedDreamId)}
+                className={`px-6 py-3 rounded-lg font-medium text-white transition-colors ${
+                  loading || (!prompt && !selectedDreamId)
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-vivid-blue to-teal-500 hover:from-vivid-blue/90 hover:to-teal-500/90'
+                }`}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                  </span>
+                ) : (
+                  'Generate Image'
+                )}
+              </button>
+              {status && (
+                <p className={`text-sm ${status.startsWith('❌') ? 'text-red-400' : 'text-green-400'}`}>
+                  {status}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Visualization Area */}
+        <div className="glassmorphism rounded-2xl overflow-hidden border border-white/10">
+          {visualizations.length > 0 ? (
+            <div className="relative">
+              {/* Main Image */}
+              <div className="aspect-video bg-dark-bg/50 flex items-center justify-center">
+                {loading ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 border-t-4 border-vivid-blue border-solid rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-300">Generating your visualization...</p>
                   </div>
-                ))}
+                ) : (
+                  <div 
+                    className="w-full h-full flex items-center justify-center cursor-zoom-in"
+                    onClick={() => handleImageClick(visualizations[currentIndex].imageUrl)}
+                  >
+                    <img 
+                      src={visualizations[currentIndex].imageUrl}
+                      alt={visualizations[currentIndex].title}
+                      className="max-w-full max-h-[70vh] object-contain p-4"
+                      onError={(e) => {
+                        console.error('Image failed to load');
+                        const target = e.target as HTMLImageElement;
+                        target.src = `https://via.placeholder.com/800x600?text=Dream+Visualization`;
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Image Info */}
+              <div className="p-6 bg-gradient-to-t from-dark-bg/90 to-transparent">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-1">
+                      {visualizations[currentIndex].title}
+                    </h3>
+                    <p className="text-gray-300 text-sm">
+                      {visualizations[currentIndex].description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    {/* Navigation Buttons */}
+                    {visualizations.length > 1 && (
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={prevVisualization}
+                          className="p-2 bg-dark-bg/50 rounded-lg hover:bg-dark-bg/80 transition-colors"
+                          aria-label="Previous visualization"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={nextVisualization}
+                          className="p-2 bg-dark-bg/50 rounded-lg hover:bg-dark-bg/80 transition-colors"
+                          aria-label="Next visualization"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Save to Journal Button */}
+                    <button
+                      onClick={handleSaveToJournal}
+                      disabled={!selectedDreamId || !visualizations[currentIndex]?.imageUrl}
+                      className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${
+                        !selectedDreamId || !visualizations[currentIndex]?.imageUrl
+                          ? 'bg-gray-600 cursor-not-allowed'
+                          : 'bg-vivid-blue hover:bg-vivid-blue/90'
+                      }`}
+                    >
+                      Save to Journal
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            <button
-              type="submit"
-              className="w-full py-3 px-6 bg-gradient-to-r from-vivid-blue to-deep-purple text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300"
-              disabled={visualizationLoading || !selectedDreamId}
-            >
-              {visualizationLoading ? 'Generating...' : 'Generate Visualization'}
-            </button>
-            
-            {visualizationError && (
-              <div className="p-4 bg-red-900/30 border border-red-700 rounded-lg mt-4">
-                <p className="text-red-400">{visualizationError}</p>
+          ) : (
+            <div className="aspect-video flex flex-col items-center justify-center p-8 text-center">
+              <div className="mb-6 p-6 bg-dark-bg/30 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-vivid-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </div>
-            )}
-          </form>
+              <h3 className="text-2xl font-bold text-white mb-2">No Visualizations Yet</h3>
+              <p className="text-gray-400 max-w-md">
+                Select a dream from your journal or enter a custom prompt above to generate your first visualization.
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Status Message */}
+        {status && !visualizations.length && (
+          <div className="mt-6 p-4 rounded-lg text-center">
+            <p className={`text-sm ${status.startsWith('❌') ? 'text-red-400' : 'text-green-400'}`}>
+              {status}
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Image Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 modal-overlay">
+          <button 
+            onClick={closeModal}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+            aria-label="Close modal"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="relative max-w-5xl max-h-[90vh] overflow-auto">
+            <img 
+              src={currentImage} 
+              alt="Full size visualization" 
+              className="max-w-full max-h-[85vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
