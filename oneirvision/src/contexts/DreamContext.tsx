@@ -194,7 +194,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
         {
           method: "POST",
           headers: {
-            "Authorization": "Bearer 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",
+            "Authorization": `Bearer ${process.env.REACT_APP_HUGGINGFACE_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ 

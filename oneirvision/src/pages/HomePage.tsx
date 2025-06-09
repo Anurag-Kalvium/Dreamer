@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import * as THREE from 'three';
-import HALO from 'vanta/dist/vanta.halo.min';
 import { 
   ArrowRight, 
   Home, 
@@ -18,33 +16,12 @@ import { useAuth } from '../contexts/AuthContext';
 import '../fonts.css';
 
 const HomePage = () => {
-  const [vantaEffect, setVantaEffect] = useState<any>(null);
-  const vantaRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  useEffect(() => {
-    if (!vantaEffect && vantaRef.current) {
-      setVantaEffect(
-        HALO({
-          el: vantaRef.current,
-          THREE: THREE,
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          minHeight: 200.00,
-          minWidth: 200.00,
-          backgroundColor: 0x0f172a,
-          size: 1.5
-        })
-      );
-    }
-    return () => {
-      if (vantaEffect) vantaEffect.destroy();
-    };
-  }, [vantaEffect]);
+  // Vanta.js initialization removed
 
   const handleLogout = async () => {
     try {
@@ -63,12 +40,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Vanta.js Background */}
-      <div 
-        ref={vantaRef} 
-        className="fixed inset-0 -z-10"
-      />
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-900">
 
       {/* Main Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
