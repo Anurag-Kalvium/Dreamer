@@ -141,37 +141,53 @@ Example: ${dreamExamples[currentExampleIndex]}`}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
-                  <h3 className="text-xl font-semibold text-white mb-3">Dream Summary</h3>
-                  <p className="text-light-gray">{interpretation.summary}</p>
-                </div>
-                
-                <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
-                  <h3 className="text-xl font-semibold text-white mb-3">Key Symbols</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {interpretation.symbols.map((symbol, index) => (
-                      <div key={index} className="p-3 bg-dark-bg/70 rounded-lg border border-gray-800">
-                        <h4 className="font-medium text-accent-pink">{symbol.symbol}</h4>
-                        <p className="text-light-gray text-sm">{symbol.meaning}</p>
-                      </div>
-                    ))}
+                <div className="p-6 bg-gradient-to-br from-dark-bg/70 to-dark-bg/40 rounded-xl border border-gray-700 backdrop-blur-sm">
+                  <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-vivid-blue to-accent-pink mb-4">
+                    Dream Interpretation
+                  </h3>
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-gray-300 leading-relaxed text-lg">
+                      {interpretation.summary}
+                    </p>
                   </div>
                 </div>
                 
-                <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
-                  <h3 className="text-xl font-semibold text-white mb-3">AI Interpretation</h3>
-                  <div className="text-light-gray whitespace-pre-line">{interpretation.psychologicalAnalysis}</div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
-                    <h3 className="text-xl font-semibold text-white mb-3">Emotional Insights</h3>
-                    <p className="text-light-gray">{interpretation.emotionalInsights}</p>
-                  </div>
-                  
-                  <div className="p-6 bg-dark-bg/50 rounded-xl border border-gray-700">
-                    <h3 className="text-xl font-semibold text-white mb-3">Actionable Advice</h3>
-                    <p className="text-light-gray">{interpretation.actionableAdvice}</p>
+                <div className="p-6 bg-gradient-to-br from-dark-bg/70 to-dark-bg/40 rounded-xl border border-gray-700 backdrop-blur-sm">
+                  <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-accent-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Dream Symbols & Meanings
+                  </h3>
+                  <p className="text-gray-400 text-sm mb-4">
+                    These symbols were identified in your dream. Hover over each symbol to learn its meaning.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {interpretation.symbols && interpretation.symbols.length > 0 ? (
+                      interpretation.symbols.map((symbol, index) => (
+                        <motion.div 
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="group relative inline-block"
+                        >
+                          <div className="px-3 py-1.5 rounded-full border border-gray-700 bg-dark-bg/60 hover:bg-gradient-to-r hover:from-accent-pink/20 hover:to-vivid-blue/20 hover:border-accent-pink/30 transition-all cursor-help flex items-center">
+                            <span className="text-sm font-medium text-accent-pink">{symbol.symbol}</span>
+                            <svg className="w-4 h-4 ml-1 text-gray-400 group-hover:text-accent-pink transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="absolute z-20 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                            <div className="text-sm font-medium text-white">{symbol.symbol}</div>
+                            <div className="text-xs text-gray-300 mt-1">{symbol.meaning}</div>
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="text-gray-400 text-sm">No key symbols identified in this dream</div>
+                    )}
                   </div>
                 </div>
                 

@@ -14,10 +14,10 @@ const Navbar: React.FC = () => {
   
   const navigation = [
     { name: 'Home', path: '/' },
-    { name: 'Interpreter', path: '/interpreter' },
-    { name: 'Visualizer', path: '/visualizer' },
+    { name: 'Dashboard', path: '/dashboard' },
+    { name: 'Dream Analysis', path: '/analyze' },
     { name: 'Journal', path: '/journal' },
-    { name: 'About', path: '/about' }
+    { name: 'Insights', path: '/insights' }
   ];
 
   return (

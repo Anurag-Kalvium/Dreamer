@@ -4,13 +4,13 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 export interface DreamInterpretation {
   id: string;
   summary: string;
-  symbols: Array<{symbol: string; meaning: string}>;  // Changed from string to array of objects
+  symbols: Array<{symbol: string; meaning: string}>;
   psychological: string;
-  psychologicalAnalysis: string;  // Added to match usage in InterpreterPage
+  psychologicalAnalysis: string;
   emotional: string;
-  emotionalInsights: string;  // Added to match usage in InterpreterPage
+  emotionalInsights: string;
   advice: string;
-  actionableAdvice: string;  // Added to match usage in InterpreterPage
+  actionableAdvice: string;
   createdAt: string;
 }
 
@@ -20,6 +20,7 @@ export interface DreamVisualization {
   title: string;
   description: string;
   imageUrl: string;
+  style?: string;
   createdAt: string;
 }
 
@@ -37,44 +38,29 @@ export interface DreamEntry {
   visualizationUrl: string;
 }
 
-// Type for creating a new dream entry (some fields are optional)
-export type NewDreamEntry = Omit<DreamEntry, 'id'> & {
+type NewDreamEntry = Omit<DreamEntry, 'id'> & {
   favorite?: boolean;
   interpretation?: string;
   visualization?: string;
   visualizationUrl?: string;
 };
 
-// Initialize dream entries from localStorage if available
-const getInitialDreamEntries = (): DreamEntry[] => {
-  try {
-    const savedEntries = localStorage.getItem('dreamJournal');
-    if (savedEntries) {
-      const parsedEntries = JSON.parse(savedEntries) as DreamEntry[];
-      console.log('Initialized dream journal from localStorage:', parsedEntries.length, 'entries');
-      return parsedEntries;
-    }
-  } catch (error) {
-    console.error('Error loading initial dream entries:', error);
-  }
-  return [];
-};
-
-// Context type definition
 interface DreamContextType {
-  // Dream Interpretation
+  // Interpretation
   interpretation: DreamInterpretation | null;
   interpretationLoading: boolean;
   interpretationError: string | null;
   interpretDreamAsync: (dreamData: { description: string; date?: string; mood?: string[] }) => Promise<DreamInterpretation | null>;
   
-  // Dream Visualization
+  // Visualization
   visualization: DreamVisualization | null;
+  visualizationHistory: DreamVisualization[];
   visualizationLoading: boolean;
   visualizationError: string | null;
-  generateVisualizationAsync: (dreamId: string, style: string) => Promise<DreamVisualization | null>;
+  generateVisualizationAsync: (dreamDescription: string, style?: string) => Promise<DreamVisualization | null>;
+  downloadVisualization: (imageUrl: string, filename: string) => void;
   
-  // Dream Journal
+  // Journal
   dreamJournal: DreamEntry[];
   journalLoading: boolean;
   journalError: string | null;
@@ -82,15 +68,17 @@ interface DreamContextType {
   addDreamEntryAsync: (entry: NewDreamEntry) => Promise<DreamEntry | null>;
   updateDreamEntryAsync: (entry: DreamEntry) => Promise<DreamEntry | null>;
   deleteDreamEntryAsync: (id: number) => Promise<boolean>;
+  
+  // Reset functions
+  resetInterpretation: () => void;
+  resetVisualization: () => void;
 }
 
-// Create the context
 const DreamContext = createContext<DreamContextType | undefined>(undefined);
 
-// Custom hook to use the dream context
 export const useDreamContext = () => {
   const context = useContext(DreamContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useDreamContext must be used within a DreamProvider');
   }
   return context;
@@ -101,307 +89,297 @@ interface DreamProviderProps {
 }
 
 export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
-  // Dream Interpretation state
+  // State for interpretation
   const [interpretation, setInterpretation] = useState<DreamInterpretation | null>(null);
-  const [interpretationLoading, setInterpretationLoading] = useState<boolean>(false);
+  const [interpretationLoading, setInterpretationLoading] = useState(false);
   const [interpretationError, setInterpretationError] = useState<string | null>(null);
-  
-  // Dream Visualization state
+
+  // State for visualization
   const [visualization, setVisualization] = useState<DreamVisualization | null>(null);
-  const [visualizationLoading, setVisualizationLoading] = useState<boolean>(false);
+  const [visualizationHistory, setVisualizationHistory] = useState<DreamVisualization[]>([]);
+  const [visualizationLoading, setVisualizationLoading] = useState(false);
   const [visualizationError, setVisualizationError] = useState<string | null>(null);
-  
-  // Dream Journal state
-  const [dreamJournal, setDreamJournal] = useState<DreamEntry[]>(getInitialDreamEntries());
-  const [journalLoading, setJournalLoading] = useState<boolean>(false);
+
+  // State for journal
+  const [dreamJournal, setDreamJournal] = useState<DreamEntry[]>([]);
+  const [journalLoading, setJournalLoading] = useState(false);
   const [journalError, setJournalError] = useState<string | null>(null);
-  
-  // Fetch dream journal entries
-  const fetchDreamJournal = async () => {
-    setJournalLoading(true);
-    setJournalError(null);
-    
-    try {
-      // In a real app, this would be an API call
-      // For now, we're just using localStorage
-      const savedEntries = localStorage.getItem('dreamJournal');
-      if (savedEntries) {
-        const parsedEntries = JSON.parse(savedEntries) as DreamEntry[];
-        setDreamJournal(parsedEntries);
-        console.log('Fetched dream journal:', parsedEntries.length, 'entries');
-      }
-    } catch (error) {
-      console.error('Error fetching dream journal:', error);
-      setJournalError('Failed to load your dream journal. Please try again.');
-    } finally {
-      setJournalLoading(false);
-    }
-  };
-  
-  // Load dream journal on mount
+
+  // Load saved journal entries on mount
   useEffect(() => {
     fetchDreamJournal();
   }, []);
-  
-  // Dream Interpretation function - using backend API
+
+  // Reset functions
+  const resetInterpretation = () => {
+    setInterpretation(null);
+    setInterpretationError(null);
+  };
+
+  const resetVisualization = () => {
+    setVisualization(null);
+    setVisualizationError(null);
+  };
+
+  // Dream interpretation function
   const interpretDreamAsync = async (dreamData: { description: string; date?: string; mood?: string[] }) => {
     setInterpretationLoading(true);
     setInterpretationError(null);
-    
+
     try {
       console.log('Interpreting dream:', dreamData);
       
-      // Call the backend API
-      const response = await fetch('http://localhost:5000/interpret', {
+      // Call our backend API for dream interpretation
+      const response = await fetch('http://localhost:5001/api/interpret', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          dreamText: dreamData.description
+          dream: dreamData.description
         }),
       });
-      
-      // Handle non-OK responses
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API error: ${response.status} - ${errorText}`);
-        throw new Error(`API error: ${response.status} - ${errorText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to interpret dream');
       }
-      
-      // Parse the response
+
       const data = await response.json();
-      console.log('Received interpretation from backend:', data);
       
-      if (!data || !data.interpretation) {
-        console.error('Invalid response from backend:', data);
-        throw new Error('Invalid response from interpretation API');
-      }
-      
-      // Parse the markdown response from the API
-      const interpretation = data.interpretation;
-      
-      // Extract sections from the markdown
-      const summaryMatch = interpretation.match(/## 1\. Overall Meaning\s+([\s\S]*?)(?=##|$)/);
-      const symbolsMatch = interpretation.match(/## 2\. Key Symbols[\s\S]*?((?:-\s+\*\*.*?\*\*:[\s\S]*?)+)(?=##|$)/);
-      const psychologicalMatch = interpretation.match(/## 3\. Psychological Insights\s+([\s\S]*?)(?=##|$)/);
-      const emotionalMatch = interpretation.match(/## 4\. Emotional Themes\s+([\s\S]*?)(?=##|$)/);
-      const adviceMatch = interpretation.match(/## 5\. Actionable Advice\s+([\s\S]*?)(?=##|$)/);
-      
-      // Extract symbols as structured data
-      const symbolsText = symbolsMatch ? symbolsMatch[1] : '';
-      const symbolsRegex = /-\s+\*\*([^*]+)\*\*:\s+([^\n]+)/g;
-      const symbols = [];
-      let match;
-      
-      while ((match = symbolsRegex.exec(symbolsText)) !== null) {
-        symbols.push({
-          symbol: match[1].trim(),
-          meaning: match[2].trim()
-        });
-      }
-      
-      // Create a new interpretation object
-      const newInterpretation: DreamInterpretation = {
-        id: `interp-${Date.now()}`,
-        summary: summaryMatch ? summaryMatch[1].trim() : 'No summary available',
-        symbols: symbols.length > 0 ? symbols : [
-          { symbol: 'Dream Symbol', meaning: 'No symbols analysis available' }
-        ],
-        psychological: psychologicalMatch ? psychologicalMatch[1].trim() : 'No psychological analysis available',
-        psychologicalAnalysis: psychologicalMatch ? psychologicalMatch[1].trim() : 'No psychological analysis available',
-        emotional: emotionalMatch ? emotionalMatch[1].trim() : 'No emotional insights available',
-        emotionalInsights: emotionalMatch ? emotionalMatch[1].trim() : 'No emotional insights available',
-        advice: adviceMatch ? adviceMatch[1].trim() : 'No advice available',
-        actionableAdvice: adviceMatch ? adviceMatch[1].trim() : 'No advice available',
-        createdAt: new Date().toISOString()
+      // Format the response to match our DreamInterpretation interface
+      const interpretation: DreamInterpretation = {
+        id: `int-${Date.now()}`,
+        summary: data.interpretation || 'No interpretation available',
+        symbols: Array.isArray(data.symbols) ? data.symbols : [],
+        psychological: data.interpretation || 'No psychological analysis available',
+        emotional: data.emotions || 'No emotional analysis available',
+        advice: data.advice || 'No advice available',
+        psychologicalAnalysis: data.interpretation || 'No detailed analysis available',
+        emotionalInsights: data.emotions || 'No emotional insights available',
+        actionableAdvice: data.advice || 'No specific advice available',
+        createdAt: new Date().toISOString(),
       };
       
-      // Update state with the new interpretation
-      setInterpretation(newInterpretation);
-      return newInterpretation;
-      
+      console.log('Formatted interpretation:', interpretation);
+
+      setInterpretation(interpretation);
+      return interpretation;
     } catch (error) {
-      console.error('Dream interpretation error:', error);
+      console.error('Dream interpretation failed:', error instanceof Error ? error.message : 'Unknown error');
       setInterpretationError('Failed to interpret your dream. Please try again.');
       return null;
     } finally {
       setInterpretationLoading(false);
     }
   };
-  
-  // Dream Visualization function - using Hugging Face API directly
-  const generateVisualizationAsync = async (dreamId: string, style: string) => {
+
+  // Generate visualization using Hugging Face API
+  const generateVisualizationAsync = async (dreamDescription: string, style: string = 'dreamlike'): Promise<DreamVisualization | null> => {
     setVisualizationLoading(true);
     setVisualizationError(null);
     
     try {
-      // Find the dream by ID
-      const dream = dreamJournal.find(d => d.id.toString() === dreamId);
+      // Create a descriptive prompt
+      const prompt = `A dreamlike visualization of: ${dreamDescription}${style ? `, in the style of ${style}` : ''}. Highly detailed, 4k, photorealistic`;
       
-      if (!dream) {
-        throw new Error('Dream not found');
-      }
+      // Generate a unique ID for this visualization
+      const visualizationId = `vis_${Date.now()}`;
       
-      console.log(`Generating visualization for dream:`, dream.title);
+      console.log('Generating visualization with prompt:', prompt);
       
-      // Call Hugging Face API directly
+      // Call Hugging Face API
       const response = await fetch(
-        'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+        "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': 'Bearer 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',
-            'Content-Type': 'application/json',
+            "Authorization": "Bearer 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",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ 
-            inputs: `A surreal digital artwork in ${style} style depicting: ${dream.description}` 
+            inputs: prompt,
+            parameters: {
+              num_inference_steps: 30,
+              guidance_scale: 7.5,
+            }
           }),
         }
       );
-      
-      // Handle non-OK responses
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API error: ${response.status} - ${errorText}`);
-        throw new Error(`Failed to generate image. Status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate image');
       }
+
+      // Convert the response to a blob URL
+      const imageBlob = await response.blob();
+      const imageUrl = URL.createObjectURL(imageBlob);
       
-      // Get the image blob
-      const blob = await response.blob();
-      const imageObjectUrl = URL.createObjectURL(blob);
+      console.log('Successfully generated visualization');
       
-      // Create a new visualization object
+      // Create the visualization object
       const newVisualization: DreamVisualization = {
-        id: `vis-${Date.now()}`,
-        title: `Dream Visualization (${style} style)`,
-        description: `AI-generated visualization based on your dream about ${dream.title}`,
-        imageUrl: imageObjectUrl,
-        createdAt: new Date().toISOString()
+        id: visualizationId,
+        title: `Dream Visualization - ${new Date().toLocaleDateString()}`,
+        description: dreamDescription,
+        imageUrl,
+        style,
+        createdAt: new Date().toISOString(),
       };
       
-      // Update the dream entry with the visualization URL
-      const updatedDream = {
-        ...dream,
-        visualizationUrl: newVisualization.imageUrl
-      };
-      
-      // Update the dream in the journal
-      await updateDreamEntryAsync(updatedDream);
-      
-      // Update state with the new visualization
+      // Add to history (keep only last 10)
+      setVisualizationHistory(prev => [newVisualization, ...prev].slice(0, 10));
       setVisualization(newVisualization);
-      return newVisualization;
       
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to generate visualization';
-      console.error('Dream visualization error:', error);
-      setVisualizationError(errorMessage);
+      return newVisualization;
+    } catch (error) {
+      console.error('Error generating visualization:', error);
+      setVisualizationError('Failed to generate visualization. Please try again.');
       return null;
     } finally {
       setVisualizationLoading(false);
     }
   };
-  
-  const addDreamEntryAsync = async (entry: NewDreamEntry) => {
+
+  // Download visualization
+  const downloadVisualization = (imageUrl: string, filename: string) => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Create a new dream entry with an ID
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = filename || 'dream-visualization.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading visualization:', error);
+    }
+  };
+
+  // Journal functions
+  const fetchDreamJournal = async () => {
+    setJournalLoading(true);
+    setJournalError(null);
+
+    try {
+      const savedEntries = localStorage.getItem('dreamJournal');
+      if (savedEntries) {
+        const parsedEntries = JSON.parse(savedEntries) as DreamEntry[];
+        setDreamJournal(parsedEntries);
+      }
+    } catch (error) {
+      console.error('Error fetching dream journal:', error);
+      setJournalError('Failed to load your dream journal.');
+    } finally {
+      setJournalLoading(false);
+    }
+  };
+
+  const addDreamEntryAsync = async (entry: NewDreamEntry): Promise<DreamEntry | null> => {
+    setJournalLoading(true);
+    setJournalError(null);
+
+    try {
       const newEntry: DreamEntry = {
         ...entry,
         id: Date.now(),
-        favorite: entry.favorite !== undefined ? entry.favorite : false,
-        visualizationUrl: entry.visualizationUrl || '',
-        tags: entry.tags || [],
+        favorite: entry.favorite || false,
         interpretation: entry.interpretation || '',
         visualization: entry.visualization || '',
-        mood: entry.mood || ''
+        visualizationUrl: entry.visualizationUrl || '',
+        mood: entry.mood || 'neutral',
+        date: entry.date || new Date().toISOString(),
+        tags: entry.tags || [],
       };
-      
-      // Update state and localStorage
+
       const updatedJournal = [newEntry, ...dreamJournal];
       setDreamJournal(updatedJournal);
       localStorage.setItem('dreamJournal', JSON.stringify(updatedJournal));
       
-      console.log('Added new dream entry:', newEntry.title);
       return newEntry;
     } catch (error) {
       console.error('Error adding dream entry:', error);
+      setJournalError('Failed to add dream entry. Please try again.');
       return null;
+    } finally {
+      setJournalLoading(false);
     }
   };
-  
-  const updateDreamEntryAsync = async (entry: DreamEntry) => {
+
+  const updateDreamEntryAsync = async (entry: DreamEntry): Promise<DreamEntry | null> => {
+    setJournalLoading(true);
+    setJournalError(null);
+
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      // Find and update the entry
       const updatedJournal = dreamJournal.map(item => 
-        item.id === entry.id ? entry : item
+        item.id === entry.id ? { ...entry } : item
       );
       
-      // Update state and localStorage
       setDreamJournal(updatedJournal);
       localStorage.setItem('dreamJournal', JSON.stringify(updatedJournal));
-      
-      console.log('Updated dream entry:', entry.title);
       return entry;
     } catch (error) {
       console.error('Error updating dream entry:', error);
+      setJournalError('Failed to update dream entry. Please try again.');
       return null;
+    } finally {
+      setJournalLoading(false);
     }
   };
-  
-  const deleteDreamEntryAsync = async (id: number) => {
+
+  const deleteDreamEntryAsync = async (id: number): Promise<boolean> => {
+    setJournalLoading(true);
+    setJournalError(null);
+
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filter out the entry to delete
-      const updatedJournal = dreamJournal.filter(item => item.id !== id);
-      
-      // Update state and localStorage
+      const updatedJournal = dreamJournal.filter(entry => entry.id !== id);
       setDreamJournal(updatedJournal);
       localStorage.setItem('dreamJournal', JSON.stringify(updatedJournal));
-      
-      console.log('Deleted dream entry with ID:', id);
       return true;
     } catch (error) {
       console.error('Error deleting dream entry:', error);
+      setJournalError('Failed to delete dream entry. Please try again.');
       return false;
+    } finally {
+      setJournalLoading(false);
     }
   };
-  
+
   // Context value
   const contextValue: DreamContextType = {
-    // Dream Interpretation
+    // Interpretation
     interpretation,
     interpretationLoading,
     interpretationError,
     interpretDreamAsync,
     
-    // Dream Visualization
+    // Visualization
     visualization,
+    visualizationHistory,
     visualizationLoading,
     visualizationError,
     generateVisualizationAsync,
+    downloadVisualization,
     
-    // Dream Journal
+    // Journal
     dreamJournal,
     journalLoading,
     journalError,
     fetchDreamJournal,
     addDreamEntryAsync,
     updateDreamEntryAsync,
-    deleteDreamEntryAsync
+    deleteDreamEntryAsync,
+    
+    // Reset functions
+    resetInterpretation,
+    resetVisualization,
   };
-  
+
   return (
     <DreamContext.Provider value={contextValue}>
       {children}
     </DreamContext.Provider>
   );
 };
+
+export default DreamContext;
