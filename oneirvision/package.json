@@ -36,15 +36,13 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "preinstall": "npx npm-force-resolutions",
-    "build": "npm install --legacy-peer-deps && react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "vercel-build": "npm install --legacy-peer-deps && react-scripts build"
+    "eject": "react-scripts eject"
   },
-  "resolutions": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   },
   "eslintConfig": {
     "extends": [
