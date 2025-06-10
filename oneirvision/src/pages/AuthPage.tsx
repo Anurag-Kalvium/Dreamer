@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import LoginButton from '../components/LoginButton';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';

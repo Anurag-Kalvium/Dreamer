@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
 import { DreamProvider } from './contexts/DreamContext';
@@ -12,7 +11,6 @@ import DreamAnalysisPage from './pages/DreamAnalysisPage';
 import JournalPage from './pages/JournalPage';
 import AuthPage from './pages/AuthPage';
 import InsightsPage from './pages/InsightsPage';
-import LandingPage from './pages/LandingPage';
 
 // Components
 import Sidebar from './components/Sidebar';

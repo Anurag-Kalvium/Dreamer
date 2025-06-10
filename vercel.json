@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
+      "src": "oneirvision/package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build"
@@ -15,5 +15,5 @@
       "dest": "/index.html"
     }
   ],
-  "buildCommand": "npm install --legacy-peer-deps && npm run build"
+  "buildCommand": "cd oneirvision && npm install && npm run build"
 }

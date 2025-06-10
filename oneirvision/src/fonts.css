@@ -4,7 +4,10 @@
 
 /* Define font families */
 :root {
-  --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Space Grotesk', -apple-system,..
+  
+  
+  che BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Space Mono', monospace;
 }
 
