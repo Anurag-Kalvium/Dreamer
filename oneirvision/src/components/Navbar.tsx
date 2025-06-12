@@ -1,149 +1,189 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Transition } from '@headlessui/react';
-import { Bars3Icon as MenuIcon, XMarkIcon as XIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import LoginButton from './LoginButton';
 import UserProfile from './UserProfile';
+import { FiHome, FiPieChart, FiBookOpen, FiZap, FiMenu, FiX, FiLogIn } from 'react-icons/fi';
+import { IconType } from 'react-icons';
+
+interface NavItem {
+  name: string;
+  path: string;
+  icon: React.ReactElement<{ className?: string }>;
+  iconType: IconType;
+}
+
+const navigation: NavItem[] = [
+  { name: 'Home', path: '/', icon: <FiHome />, iconType: FiHome },
+  { name: 'Dashboard', path: '/dashboard', icon: <FiPieChart />, iconType: FiPieChart },
+  { name: 'Analyze', path: '/analyze', icon: <FiZap />, iconType: FiZap },
+  { name: 'Journal', path: '/journal', icon: <FiBookOpen />, iconType: FiBookOpen },
+  { name: 'Insights', path: '/insights', icon: <FiPieChart />, iconType: FiPieChart }
+];
 
 const Navbar: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, logout } = useAuth();
-  
-  const navigation = [
-    { name: 'Home', path: '/' },
-    { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Dream Analysis', path: '/analyze' },
-    { name: 'Journal', path: '/journal' },
-    { name: 'Insights', path: '/insights' }
-  ];
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <motion.nav 
-      className="fixed w-full top-0 z-50 glassmorphism border-b border-gray-800/30"
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, type: 'spring', stiffness: 120 }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <motion.h1 
-                className="text-2xl font-bold navbar-title"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: 'spring', stiffness: 300, duration: 0.3 }}
-              >
-                OneirVision
-              </motion.h1>
-            </div>
-          </div>
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              {navigation.map((item, index) => (
-                <motion.div key={item.name} className="relative group">
+    <>
+      {/* Desktop Navbar */}
+      <motion.nav 
+        className="fixed top-6 left-0 right-0 z-50 flex justify-center"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, type: 'spring', stiffness: 120 }}
+      >
+        <div className="relative">
+          {/* Glassmorphic pill container */}
+          <div className={`flex items-center bg-gray-800/40 backdrop-blur-lg border border-gray-700/50 rounded-full p-1.5 shadow-lg ${
+            isScrolled ? 'shadow-black/30' : 'shadow-black/20'
+          }`}>
+            {/* Navigation Items */}
+            <div className="hidden md:flex items-center space-x-1">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
                   <Link
+                    key={item.name}
                     to={item.path}
-                    className={`${
-                      location.pathname === item.path
-                        ? 'text-white'
-                        : 'text-light-gray hover:text-white'
-                    } px-3 py-2 rounded-md text-sm font-medium relative`}
+                    className={`relative px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-200 flex flex-col items-center ${
+                      isActive ? 'text-white' : 'text-gray-400 hover:text-white/80'
+                    }`}
                   >
-                    <motion.span
-                      whileHover={{ scale: 1.05 }}
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1, duration: 0.3, type: 'spring' }}
-                    >
-                      {item.name}
-                    </motion.span>
+                    <div className="flex items-center space-x-2">
+                      <span className="transition-transform duration-200 group-hover:scale-110">
+                        {React.createElement(item.iconType, {
+                          className: `w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`
+                        })}
+                      </span>
+                      <span>{item.name}</span>
+                    </div>
+                    {isActive && (
+                      <motion.span 
+                        layoutId="nav-dot"
+                        className="absolute -bottom-1 w-1.5 h-1.5 bg-indigo-400 rounded-full"
+                        initial={false}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 500,
+                          damping: 30
+                        }}
+                      />
+                    )}
                   </Link>
-                  <span className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-vivid-blue to-accent-pink transition-all duration-300 ${
-                    location.pathname === item.path ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}></span>
-                </motion.div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-          
-          {/* Authentication UI */}
-          <div className="hidden md:flex items-center ml-4">
-            {isAuthenticated ? (
-              <UserProfile />
-            ) : (
-              <LoginButton />
-            )}
-          </div>
-          
-          <div className="-mr-2 flex md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="bg-dark-bg/50 backdrop-blur-sm inline-flex items-center justify-center p-2 rounded-md text-light-gray hover:text-white focus:outline-none"
-            >
-              <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <XIcon className="block h-6 w-6" aria-hidden="true" />
-              ) : (
-                <MenuIcon className="block h-6 w-6" aria-hidden="true" />
-              )}
-            </button>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Toggle menu"
+              >
+                {isMenuOpen ? <FiX className="h-5 w-5" /> : <FiMenu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.nav>
 
-      <Transition
-        show={isOpen}
-        enter="transition ease-out duration-300"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-200"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <div className="md:hidden backdrop-blur-lg">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-dark-bg/90">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`${
-                  location.pathname === item.path
-                    ? 'text-white border-l-2 border-accent-pink'
-                    : 'text-light-gray hover:text-white border-l-2 border-transparent hover:border-accent-pink'
-                } block px-3 py-2 rounded-md text-base font-medium transition-all duration-200`}
-                onClick={() => setIsOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              onClick={() => setIsMenuOpen(false)}
+            />
             
-            {/* Mobile Authentication UI */}
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              {isAuthenticated ? (
-                <div className="px-3 py-2">
-                  <div className="flex items-center space-x-3 mb-3">
+            {/* Menu Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="fixed top-0 right-0 w-72 h-full bg-gray-900/95 backdrop-blur-xl z-50 flex flex-col overflow-y-auto"
+            >
+              {/* Menu Header */}
+              <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                <span className="text-lg font-semibold text-white">Menu</span>
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                >
+                  <FiX className="h-5 w-5" />
+                </button>
+              </div>
+              
+              {/* Navigation Items */}
+              <nav className="flex-1 p-4 space-y-1">
+                {navigation.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center px-4 py-3 text-base font-medium rounded-lg mx-1 ${
+                        isActive
+                          ? 'bg-white/10 text-white'
+                          : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      {React.createElement(item.iconType, {
+                        className: `mr-3 h-6 w-6 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`
+                      })}
+                      {item.name}
+                      {isActive && (
+                        <span className="ml-auto w-2 h-2 bg-indigo-400 rounded-full" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+              
+              {/* User Section */}
+              <div className="p-4 border-t border-white/5">
+                {user ? (
+                  <div className="px-4 py-3">
                     <UserProfile />
                   </div>
-                  <button 
-                    onClick={logout}
-                    className="w-full text-left px-2 py-2 text-light-gray hover:text-white transition-colors"
+                ) : (
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="w-full flex items-center justify-center px-4 py-3 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-md"
                   >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <div className="px-3 py-2">
-                  <LoginButton />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </motion.nav>
+                    <FiLogIn className="mr-2 h-5 w-5" />
+                    Sign In
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL } from '../config';
 
 // Dream interpretation model
 export interface DreamInterpretation {
@@ -130,7 +131,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       console.log('Interpreting dream:', dreamData);
       
       // Call our backend API for dream interpretation
-      const response = await fetch('http://localhost:5001/api/interpret', {
+      const response = await fetch(`${API_BASE_URL}/api/interpret`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

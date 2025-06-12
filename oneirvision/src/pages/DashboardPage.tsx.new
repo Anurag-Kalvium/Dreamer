@@ -1,0 +1,13 @@
+import React from 'react';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import DashboardCards from '../components/dashboard/DashboardCards';
+
+const DashboardPage: React.FC = () => {
+  return (
+    <DashboardLayout>
+      <DashboardCards />
+    </DashboardLayout>
+  );
+};
+
+export default DashboardPage;

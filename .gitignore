@@ -10,6 +10,7 @@ node_modules/
 */dist
 
 # Environment variables
+.env
 
 # Debug logs
 npm-debug.log*
