@@ -15,5 +15,5 @@
       "dest": "/index.html"
     }
   ],
-  "buildCommand": "cd oneirvision && npm install && npm run build"
+  "buildCommand": "npm run build"
 }
