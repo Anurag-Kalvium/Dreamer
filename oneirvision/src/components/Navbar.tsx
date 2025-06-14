@@ -13,8 +13,7 @@ import {
   FiMoon
 } from 'react-icons/fi';
 import { IconType } from 'react-icons';
-import motion from '../utils/motion';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface NavItem {
   name: string;
@@ -78,7 +77,7 @@ const Navbar: React.FC = () => {
 
   return (
     <>
-      {/* Desktop Glassmorphism Pill Navbar */}
+      {/* Desktop Glassmorphism Pill Navbar - Centered */}
       <motion.nav 
         className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 hidden md:block"
         initial={{ y: -100, opacity: 0 }}
@@ -91,38 +90,44 @@ const Navbar: React.FC = () => {
         }}
       >
         <div className="relative">
-          {/* Glassmorphic pill container */}
-          <div className={`flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-2 py-2 shadow-2xl shadow-purple-500/10 ${
-            isScrolled ? 'shadow-black/30' : 'shadow-black/20'
-          }`}>
+          {/* Main glassmorphic pill container */}
+          <div className={`flex items-center bg-gray-900/20 backdrop-blur-xl border border-white/10 rounded-full px-3 py-3 shadow-2xl ${
+            isScrolled ? 'shadow-black/40' : 'shadow-black/20'
+          }`}
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}>
+            
             {/* Navigation Items */}
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`relative px-4 py-3 text-sm font-medium rounded-full transition-all duration-300 flex items-center space-x-2 group ${
+                    className={`relative px-4 py-2.5 text-sm font-medium rounded-full transition-all duration-300 flex items-center space-x-2 group ${
                       isActive 
-                        ? 'text-white bg-white/20 shadow-lg shadow-indigo-500/20' 
+                        ? 'text-white bg-white/20 shadow-lg' 
                         : 'text-gray-300 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
                       <span className="transition-transform duration-200 group-hover:scale-110">
                         {React.createElement(item.iconType, {
-                          className: `w-4 h-4 ${isActive ? 'text-indigo-300' : 'text-gray-400 group-hover:text-indigo-300'}`
+                          className: `w-4 h-4 ${isActive ? 'text-blue-300' : 'text-gray-400 group-hover:text-blue-300'}`
                         })}
                       </span>
-                      <span className="hidden lg:inline">{item.name}</span>
+                      <span className="hidden lg:inline text-sm">{item.name}</span>
                     </div>
                     
-                    {/* Active indicator */}
+                    {/* Active indicator dot */}
                     {isActive && (
                       <motion.div
-                        layoutId="navbar-active"
-                        className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 rounded-full -z-10"
+                        layoutId="navbar-active-dot"
+                        className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full"
                         initial={false}
                         transition={{
                           type: 'spring',
@@ -131,29 +136,20 @@ const Navbar: React.FC = () => {
                         }}
                       />
                     )}
-                    
-                    {/* Hover glow effect */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-400/0 to-purple-400/0 group-hover:from-indigo-400/10 group-hover:to-purple-400/10 transition-all duration-300 -z-10" />
                   </Link>
                 );
               })}
             </div>
 
-            {/* Divider */}
-            <div className="w-px h-8 bg-white/20 mx-3" />
-
             {/* Profile Section */}
-            <div className="relative">
+            <div className="relative ml-4 pl-4 border-l border-white/10">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-2 px-4 py-3 rounded-full hover:bg-white/10 transition-all duration-300 group"
+                className="flex items-center space-x-2 px-3 py-2.5 rounded-full hover:bg-white/10 transition-all duration-300 group"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium">
                   {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <span className="hidden xl:inline text-sm text-gray-300 group-hover:text-white transition-colors">
-                  {user.name?.split(' ')[0] || 'User'}
-                </span>
               </button>
 
               {/* Profile Dropdown */}
@@ -169,7 +165,7 @@ const Navbar: React.FC = () => {
                     {/* Profile Header */}
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-medium">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
                           {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div>
@@ -199,8 +195,8 @@ const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Ambient glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full blur-xl -z-10 opacity-50" />
+          {/* Subtle glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-xl -z-10 opacity-50" />
         </div>
       </motion.nav>
 
@@ -213,7 +209,12 @@ const Navbar: React.FC = () => {
       >
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-gray-300 hover:text-white hover:bg-white/20 transition-all duration-300 shadow-lg"
+          className="p-3 bg-gray-900/20 backdrop-blur-xl border border-white/20 rounded-full text-gray-300 hover:text-white hover:bg-white/20 transition-all duration-300 shadow-lg"
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
         >
           {isMenuOpen ? <FiX className="h-6 w-6" /> : <FiMenu className="h-6 w-6" />}
         </button>
@@ -255,7 +256,7 @@ const Navbar: React.FC = () => {
                 
                 {/* User Info */}
                 <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-medium">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
                     {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div>
@@ -276,16 +277,16 @@ const Navbar: React.FC = () => {
                       onClick={() => setIsMenuOpen(false)}
                       className={`flex items-center px-4 py-3 text-base font-medium rounded-xl transition-all ${
                         isActive
-                          ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-white border border-indigo-500/30'
+                          ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white border border-blue-500/30'
                           : 'text-gray-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
                       {React.createElement(item.iconType, {
-                        className: `mr-3 h-5 w-5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`
+                        className: `mr-3 h-5 w-5 ${isActive ? 'text-blue-400' : 'text-gray-400'}`
                       })}
                       {item.name}
                       {isActive && (
-                        <div className="ml-auto w-2 h-2 bg-indigo-400 rounded-full" />
+                        <div className="ml-auto w-2 h-2 bg-blue-400 rounded-full" />
                       )}
                     </Link>
                   );
