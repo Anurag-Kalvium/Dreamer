@@ -4,77 +4,104 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import UserProfile from './UserProfile';
 import { FiHome, FiPieChart, FiBookOpen, FiZap, FiMenu, FiX, FiLogIn } from 'react-icons/fi';
-import { IconType } from 'react-icons';
 
 interface NavItem {
   name: string;
   path: string;
-  icon: React.ReactElement<{ className?: string }>;
-  iconType: IconType;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const navigation: NavItem[] = [
-  { name: 'Home', path: '/', icon: <FiHome />, iconType: FiHome },
-  { name: 'Dashboard', path: '/dashboard', icon: <FiPieChart />, iconType: FiPieChart },
-  { name: 'Analyze', path: '/analyze', icon: <FiZap />, iconType: FiZap },
-  { name: 'Journal', path: '/journal', icon: <FiBookOpen />, iconType: FiBookOpen },
-  { name: 'Insights', path: '/insights', icon: <FiPieChart />, iconType: FiPieChart }
+  { name: 'Home', path: '/', icon: FiHome },
+  { name: 'Dashboard', path: '/dashboard', icon: FiPieChart },
+  { name: 'Analyze', path: '/analyze', icon: FiZap },
+  { name: 'Journal', path: '/journal', icon: FiBookOpen },
+  { name: 'Insights', path: '/insights', icon: FiPieChart }
 ];
 
 const Navbar: React.FC = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 10);
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMenuOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isMenuOpen]);
 
   return (
     <>
-      {/* Desktop Navbar */}
       <motion.nav 
-        className="fixed top-6 left-0 right-0 z-50 flex justify-center"
+        className={`fixed w-full top-0 z-50 ${
+          scrolled 
+            ? 'bg-[#0D041B]/90 backdrop-blur-md border-b border-white/5' 
+            : 'bg-[#0D041B]/80 backdrop-blur-sm border-b border-white/5'
+        }`}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, type: 'spring', stiffness: 120 }}
       >
-        <div className="relative">
-          {/* Glassmorphic pill container */}
-          <div className={`flex items-center bg-gray-800/40 backdrop-blur-lg border border-gray-700/50 rounded-full p-1.5 shadow-lg ${
-            isScrolled ? 'shadow-black/30' : 'shadow-black/20'
-          }`}>
-            {/* Navigation Items */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="flex-shrink-0 flex items-center">
+              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">
+                OneirVision
+              </span>
+            </Link>
+
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.path;
+                const IconComponent = item.icon;
                 return (
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`relative px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-200 flex flex-col items-center ${
-                      isActive ? 'text-white' : 'text-gray-400 hover:text-white/80'
+                    className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+                      isActive 
+                        ? 'text-white bg-white/10' 
+                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center space-x-2">
-                      <span className="transition-transform duration-200 group-hover:scale-110">
-                        {React.createElement(item.iconType, {
-                          className: `w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`
-                        })}
-                      </span>
-                      <span>{item.name}</span>
-                    </div>
+                    <IconComponent className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
+                    <span>{item.name}</span>
                     {isActive && (
                       <motion.span 
                         layoutId="nav-dot"
-                        className="absolute -bottom-1 w-1.5 h-1.5 bg-indigo-400 rounded-full"
+                        className="absolute -bottom-1 left-1/2 w-1.5 h-1.5 bg-indigo-400 rounded-full -translate-x-1/2"
                         initial={false}
                         transition={{
                           type: 'spring',
@@ -87,15 +114,30 @@ const Navbar: React.FC = () => {
                 );
               })}
             </div>
+            
+            {/* Desktop User/Auth */}
+            <div className="hidden md:flex items-center ml-4">
+              {user ? (
+                <UserProfile />
+              ) : (
+                <Link
+                  to="/auth"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-full text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-md hover:shadow-indigo-500/20"
+                >
+                  <FiLogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Link>
+              )}
+            </div>
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Toggle menu"
               >
-                {isMenuOpen ? <FiX className="h-5 w-5" /> : <FiMenu className="h-5 w-5" />}
+                {isMenuOpen ? <FiX className="h-6 w-6" /> : <FiMenu className="h-6 w-6" />}
               </button>
             </div>
           </div>
@@ -122,7 +164,7 @@ const Navbar: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              className="fixed top-0 right-0 w-72 h-full bg-gray-900/95 backdrop-blur-xl z-50 flex flex-col overflow-y-auto"
+              className="fixed top-0 right-0 w-72 h-full bg-[#0D041B] border-l border-white/5 backdrop-blur-xl shadow-2xl z-50 flex flex-col overflow-y-auto"
             >
               {/* Menu Header */}
               <div className="p-4 border-b border-white/5 flex justify-between items-center">
@@ -139,6 +181,7 @@ const Navbar: React.FC = () => {
               <nav className="flex-1 p-4 space-y-1">
                 {navigation.map((item) => {
                   const isActive = location.pathname === item.path;
+                  const IconComponent = item.icon;
                   return (
                     <Link
                       key={item.name}
@@ -150,13 +193,8 @@ const Navbar: React.FC = () => {
                           : 'text-gray-300 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      {React.createElement(item.iconType, {
-                        className: `mr-3 h-6 w-6 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`
-                      })}
+                      <IconComponent className={`mr-3 h-6 w-6 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
                       {item.name}
-                      {isActive && (
-                        <span className="ml-auto w-2 h-2 bg-indigo-400 rounded-full" />
-                      )}
                     </Link>
                   );
                 })}
@@ -165,7 +203,7 @@ const Navbar: React.FC = () => {
               {/* User Section */}
               <div className="p-4 border-t border-white/5">
                 {user ? (
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 flex items-center">
                     <UserProfile />
                   </div>
                 ) : (
