@@ -145,7 +145,7 @@ const HomePage = () => {
             transition={{ delay: 0.5, duration: 0.6 }}
           >
             <Link
-              to={user ? '/dashboard' : '/auth/register'}
+              to={user ? '/dashboard' : '/auth'}
               className="group relative px-8 py-4 bg-gradient-to-r from-[#A855F7] to-[#6366F1] text-white font-medium rounded-full hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 overflow-hidden"
             >
               <span className="relative z-10">
@@ -157,7 +157,7 @@ const HomePage = () => {
             
             {!user && (
               <Link
-                to="/auth/login"
+                to="/auth"
                 className="px-8 py-4 bg-transparent border-2 border-white/20 text-white font-medium rounded-full hover:bg-white/5 transition-all duration-300"
               >
                 Sign In
