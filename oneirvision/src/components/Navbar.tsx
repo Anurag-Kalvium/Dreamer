@@ -79,7 +79,7 @@ const Navbar: React.FC = () => {
     <>
       {/* Desktop Glassmorphism Pill Navbar - Centered */}
       <motion.nav 
-        className="fixed top-6 justify-center z-50 hidden md:block"
+  className="fixed top-6 w-full flex justify-center z-50 hidden md:block"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ 
