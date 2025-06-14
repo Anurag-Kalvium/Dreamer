@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
-import { Sparkles, Brain, Eye, Palette, Zap, Moon, Heart, BookOpen, Save, Clock, Download, Star } from 'lucide-react';
+import { Sparkles, Brain, Eye, Palette, Zap, Heart, BookOpen, Save, Clock, Download, Star } from 'lucide-react';
 import type { DreamVisualization } from '../contexts/DreamContext';
 
 const DreamAnalysisPage: React.FC = () => {
@@ -25,6 +25,7 @@ const DreamAnalysisPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'interpretation' | 'visualization'>('interpretation');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const dreamExamples = [
     "I was flying over a city made of crystal, and I could see my reflection in every building. The sky was purple and filled with floating islands.",
@@ -37,15 +38,42 @@ const DreamAnalysisPage: React.FC = () => {
   );
 
   const moodOptions = [
-    { value: 'peaceful', label: 'Peaceful', emoji: '🌙' },
-    { value: 'adventurous', label: 'Adventurous', emoji: '⚡' },
-    { value: 'mysterious', label: 'Mysterious', emoji: '🔮' },
-    { value: 'scary', label: 'Scary', emoji: '👻' },
-    { value: 'happy', label: 'Happy', emoji: '☀️' },
-    { value: 'sad', label: 'Sad', emoji: '☁️' },
-    { value: 'confused', label: 'Confused', emoji: '🌀' },
-    { value: 'excited', label: 'Excited', emoji: '🎆' }
+    { value: 'peaceful', label: 'Peaceful' },
+    { value: 'adventurous', label: 'Adventurous' },
+    { value: 'mysterious', label: 'Mysterious' },
+    { value: 'scary', label: 'Scary' },
+    { value: 'happy', label: 'Happy' },
+    { value: 'sad', label: 'Sad' },
+    { value: 'confused', label: 'Confused' },
+    { value: 'excited', label: 'Excited' }
   ];
+
+  // Auto-play ambient sound on component mount
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = 0.3; // Set volume to 30%
+      audio.loop = true;
+      
+      // Try to play the audio
+      const playAudio = async () => {
+        try {
+          await audio.play();
+        } catch (error) {
+          console.log('Auto-play prevented by browser policy');
+        }
+      };
+      
+      playAudio();
+    }
+
+    // Cleanup function to pause audio when component unmounts
+    return () => {
+      if (audio) {
+        audio.pause();
+      }
+    };
+  }, []);
 
   const handleMoodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const options = e.target.options;
@@ -121,6 +149,12 @@ const DreamAnalysisPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0D041B]">
+      {/* Hidden audio element for ambient sound */}
+      <audio ref={audioRef} preload="auto">
+        <source src="/sounds/space-ambient.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
+
       {/* Animated Background - matching homepage */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-indigo-900/10 to-[#0D041B]" />
@@ -222,9 +256,9 @@ const DreamAnalysisPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-xl hover:bg-white/10 transition-all duration-300">
+              <div className="bg-gray-900/40 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-xl hover:bg-gray-900/60 transition-all duration-300">
                 <div className="flex items-center mb-6">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mr-4">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500/30 to-purple-500/30 flex items-center justify-center mr-4">
                     <Brain className="h-6 w-6 text-indigo-400" />
                   </div>
                   <h3 className="text-2xl font-semibold text-white">Describe Your Dream</h3>
@@ -238,7 +272,7 @@ const DreamAnalysisPage: React.FC = () => {
                     <textarea
                       id="dreamDescription"
                       rows={8}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all resize-none"
+                      className="w-full bg-gray-800/50 border border-white/20 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all resize-none"
                       placeholder={`Describe your dream in vivid detail...\n\nExample: ${dreamExamples[currentExampleIndex]}`}
                       value={dreamDescription}
                       onChange={(e) => setDreamDescription(e.target.value)}
@@ -255,7 +289,7 @@ const DreamAnalysisPage: React.FC = () => {
                       <input
                         type="datetime-local"
                         id="dreamDate"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all"
+                        className="w-full bg-gray-800/50 border border-white/20 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all"
                         value={dreamDate}
                         onChange={(e) => setDreamDate(e.target.value)}
                       />
@@ -268,13 +302,13 @@ const DreamAnalysisPage: React.FC = () => {
                       <select
                         id="mood"
                         multiple
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all"
+                        className="w-full bg-gray-800/50 border border-white/20 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all"
                         value={selectedMoods}
                         onChange={handleMoodChange}
                       >
                         {moodOptions.map(mood => (
                           <option key={mood.value} value={mood.value}>
-                            {mood.emoji} {mood.label}
+                            {mood.label}
                           </option>
                         ))}
                       </select>
@@ -312,14 +346,14 @@ const DreamAnalysisPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
             >
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-xl hover:bg-white/10 transition-all duration-300 h-full">
+              <div className="bg-gray-900/40 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-xl hover:bg-gray-900/60 transition-all duration-300 h-full">
                 {/* Tab Navigation */}
-                <div className="flex border-b border-white/10 mb-8">
+                <div className="flex border-b border-white/20 mb-8">
                   <button
                     className={`py-3 px-6 font-medium rounded-t-lg transition-all flex items-center space-x-2 ${
                       activeTab === 'interpretation' 
-                        ? 'text-white bg-white/10 border-b-2 border-indigo-400' 
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        ? 'text-white bg-white/20 border-b-2 border-indigo-400' 
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                     onClick={() => setActiveTab('interpretation')}
                   >
@@ -329,8 +363,8 @@ const DreamAnalysisPage: React.FC = () => {
                   <button
                     className={`py-3 px-6 font-medium rounded-t-lg transition-all flex items-center space-x-2 ${
                       activeTab === 'visualization' 
-                        ? 'text-white bg-white/10 border-b-2 border-indigo-400' 
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        ? 'text-white bg-white/20 border-b-2 border-indigo-400' 
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                     onClick={() => setActiveTab('visualization')}
                   >
@@ -343,7 +377,7 @@ const DreamAnalysisPage: React.FC = () => {
                   <div className="space-y-6">
                     {interpretationError && (
                       <motion.div 
-                        className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
+                        className="p-4 bg-red-500/20 border border-red-500/40 rounded-xl text-red-400"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                       >
@@ -359,16 +393,16 @@ const DreamAnalysisPage: React.FC = () => {
                         transition={{ duration: 0.5 }}
                       >
                         {/* Dream Summary */}
-                        <div className="p-6 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl border border-indigo-500/20">
+                        <div className="p-6 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl border border-indigo-500/30">
                           <div className="flex items-center mb-4">
                             <Eye className="h-6 w-6 text-indigo-400 mr-3" />
                             <h3 className="text-xl font-semibold text-white">Dream Summary</h3>
                           </div>
-                          <p className="text-gray-300 leading-relaxed">{interpretation.summary}</p>
+                          <p className="text-gray-200 leading-relaxed">{interpretation.summary}</p>
                         </div>
                         
                         {/* Key Symbols */}
-                        <div className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20">
+                        <div className="p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
                           <div className="flex items-center mb-4">
                             <Star className="h-6 w-6 text-purple-400 mr-3" />
                             <h3 className="text-xl font-semibold text-white">Key Symbols</h3>
@@ -377,13 +411,13 @@ const DreamAnalysisPage: React.FC = () => {
                             {interpretation.symbols.map((symbol, index) => (
                               <motion.div 
                                 key={index} 
-                                className="p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all"
+                                className="p-4 bg-gray-800/60 rounded-lg border border-white/20 hover:bg-gray-800/80 transition-all"
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: index * 0.1 }}
                               >
                                 <h4 className="font-medium text-purple-300 mb-2">{symbol.symbol}</h4>
-                                <p className="text-gray-400 text-sm">{symbol.meaning}</p>
+                                <p className="text-gray-300 text-sm">{symbol.meaning}</p>
                               </motion.div>
                             ))}
                           </div>
@@ -391,20 +425,20 @@ const DreamAnalysisPage: React.FC = () => {
                         
                         {/* Insights Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="p-6 bg-gradient-to-br from-green-500/10 to-teal-500/10 rounded-xl border border-green-500/20">
+                          <div className="p-6 bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-xl border border-green-500/30">
                             <div className="flex items-center mb-4">
                               <Heart className="h-6 w-6 text-green-400 mr-3" />
                               <h3 className="text-xl font-semibold text-white">Emotional Insights</h3>
                             </div>
-                            <p className="text-gray-300">{interpretation.emotionalInsights}</p>
+                            <p className="text-gray-200">{interpretation.emotionalInsights}</p>
                           </div>
                           
-                          <div className="p-6 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl border border-yellow-500/20">
+                          <div className="p-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30">
                             <div className="flex items-center mb-4">
                               <BookOpen className="h-6 w-6 text-yellow-400 mr-3" />
                               <h3 className="text-xl font-semibold text-white">Actionable Advice</h3>
                             </div>
-                            <p className="text-gray-300">{interpretation.actionableAdvice}</p>
+                            <p className="text-gray-200">{interpretation.actionableAdvice}</p>
                           </div>
                         </div>
 
@@ -424,7 +458,7 @@ const DreamAnalysisPage: React.FC = () => {
                       </motion.div>
                     ) : (
                       <div className="text-center py-16">
-                        <div className="mb-6 p-6 bg-white/5 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
+                        <div className="mb-6 p-6 bg-gray-800/40 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
                           <Brain className="h-12 w-12 text-indigo-300" />
                         </div>
                         <h3 className="text-2xl font-semibold text-white mb-2">Ready to Analyze</h3>
@@ -444,17 +478,17 @@ const DreamAnalysisPage: React.FC = () => {
                       </div>
                       
                       {visualizationLoading ? (
-                        <div className="flex flex-col items-center justify-center py-16 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex flex-col items-center justify-center py-16 bg-gray-800/40 rounded-xl border border-white/20">
                           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-400 mb-4"></div>
-                          <p className="text-gray-300 mb-2">Generating your dream visualization...</p>
-                          <p className="text-sm text-gray-500">This may take a moment</p>
+                          <p className="text-gray-200 mb-2">Generating your dream visualization...</p>
+                          <p className="text-sm text-gray-400">This may take a moment</p>
                         </div>
                       ) : visualizationError ? (
-                        <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
+                        <div className="p-6 bg-red-500/20 border border-red-500/40 rounded-xl">
                           <p className="text-red-400 mb-4">Error: {visualizationError}</p>
                           <button 
                             onClick={() => generateVisualizationAsync(dreamDescription)}
-                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
+                            className="px-4 py-2 bg-red-500/30 hover:bg-red-500/40 text-red-300 rounded-lg transition-colors"
                           >
                             Try Again
                           </button>
@@ -469,7 +503,7 @@ const DreamAnalysisPage: React.FC = () => {
                           <img 
                             src={generatedImage} 
                             alt="Generated dream visualization" 
-                            className="w-full h-auto rounded-xl shadow-2xl border-2 border-white/10"
+                            className="w-full h-auto rounded-xl shadow-2xl border-2 border-white/20"
                             onError={(e) => {
                               console.error('Failed to load image:', generatedImage);
                               const target = e.target as HTMLImageElement;
@@ -489,8 +523,8 @@ const DreamAnalysisPage: React.FC = () => {
                           </div>
                         </motion.div>
                       ) : (
-                        <div className="text-center py-16 bg-white/5 rounded-xl border border-white/10">
-                          <div className="mb-6 p-6 bg-white/5 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
+                        <div className="text-center py-16 bg-gray-800/40 rounded-xl border border-white/20">
+                          <div className="mb-6 p-6 bg-gray-800/40 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
                             <Palette className="h-12 w-12 text-purple-300" />
                           </div>
                           <h3 className="text-2xl font-semibold text-white mb-2">No Visualization Yet</h3>
@@ -512,7 +546,7 @@ const DreamAnalysisPage: React.FC = () => {
                           {visualizationHistory.map((item: DreamVisualization) => (
                             <motion.div 
                               key={item.id}
-                              className="group relative overflow-hidden rounded-lg border border-white/10 hover:border-indigo-400/50 transition-all"
+                              className="group relative overflow-hidden rounded-lg border border-white/20 hover:border-indigo-400/50 transition-all"
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
                             >
@@ -530,7 +564,7 @@ const DreamAnalysisPage: React.FC = () => {
                                 <div className="flex gap-2">
                                   <button 
                                     onClick={() => setGeneratedImage(item.imageUrl)}
-                                    className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded flex-1"
+                                    className="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded flex-1"
                                   >
                                     View
                                   </button>
@@ -556,61 +590,6 @@ const DreamAnalysisPage: React.FC = () => {
               </div>
             </motion.div>
           </div>
-
-          {/* How It Works Section - matching homepage feature grid style */}
-          <motion.div 
-            className="mt-20"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-          >
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">How Dream Analysis Works</h2>
-              <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-                Our advanced AI processes your dreams through multiple layers of analysis
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                {
-                  icon: <Brain className="h-8 w-8 text-indigo-400" />,
-                  title: 'Describe Your Dream',
-                  description: 'Share the details of your dream, including emotions, symbols, and narrative elements.',
-                  gradient: 'from-indigo-500/20 to-purple-500/20',
-                  border: 'border-indigo-500/20'
-                },
-                {
-                  icon: <Zap className="h-8 w-8 text-purple-400" />,
-                  title: 'AI Processing',
-                  description: 'Our AI analyzes patterns, symbols, and psychological meanings using advanced NLP.',
-                  gradient: 'from-purple-500/20 to-pink-500/20',
-                  border: 'border-purple-500/20'
-                },
-                {
-                  icon: <Eye className="h-8 w-8 text-pink-400" />,
-                  title: 'Get Insights & Visuals',
-                  description: 'Receive detailed interpretations and stunning AI-generated visualizations.',
-                  gradient: 'from-pink-500/20 to-red-500/20',
-                  border: 'border-pink-500/20'
-                }
-              ].map((step, index) => (
-                <motion.div 
-                  key={index}
-                  className={`bg-white/5 backdrop-blur-sm border ${step.border} rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:-translate-y-1`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.9 + index * 0.1 }}
-                >
-                  <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${step.gradient} flex items-center justify-center mb-4`}>
-                    {step.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
-                  <p className="text-gray-300 text-sm">{step.description}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </div>
       </div>
     </div>
