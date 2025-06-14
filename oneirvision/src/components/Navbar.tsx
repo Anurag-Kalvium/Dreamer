@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -11,28 +10,43 @@ import {
   FiX, 
   FiUser,
   FiLogOut,
-  FiSettings
+  FiMoon
 } from 'react-icons/fi';
+import { IconType } from 'react-icons';
+import motion from '../utils/motion';
+import { AnimatePresence } from 'framer-motion';
 
 interface NavItem {
   name: string;
   path: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ReactElement<{ className?: string }>;
+  iconType: IconType;
 }
 
 const navigation: NavItem[] = [
-  { name: 'Home', path: '/', icon: FiHome },
-  { name: 'Journal', path: '/journal', icon: FiBookOpen },
-  { name: 'Analyze', path: '/analyze', icon: FiZap },
-  { name: 'Dashboard', path: '/dashboard', icon: FiPieChart },
-  { name: 'Lucidity', path: '/lucidity', icon: FiSettings }
+  { name: 'Home', path: '/', icon: <FiHome />, iconType: FiHome },
+  { name: 'Dashboard', path: '/dashboard', icon: <FiPieChart />, iconType: FiPieChart },
+  { name: 'Analyze', path: '/analyze', icon: <FiZap />, iconType: FiZap },
+  { name: 'Journal', path: '/journal', icon: <FiBookOpen />, iconType: FiBookOpen },
+  { name: 'Lucidity', path: '/lucidity', icon: <FiMoon />, iconType: FiMoon }
 ];
 
 const Navbar: React.FC = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -78,12 +92,13 @@ const Navbar: React.FC = () => {
       >
         <div className="relative">
           {/* Glassmorphic pill container */}
-          <div className="flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-2 py-2 shadow-2xl shadow-purple-500/10">
+          <div className={`flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-2 py-2 shadow-2xl shadow-purple-500/10 ${
+            isScrolled ? 'shadow-black/30' : 'shadow-black/20'
+          }`}>
             {/* Navigation Items */}
             <div className="flex items-center space-x-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.path;
-                const IconComponent = item.icon;
                 return (
                   <Link
                     key={item.name}
@@ -94,10 +109,14 @@ const Navbar: React.FC = () => {
                         : 'text-gray-300 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    <IconComponent className={`w-4 h-4 transition-all duration-300 ${
-                      isActive ? 'text-indigo-300' : 'text-gray-400 group-hover:text-indigo-300'
-                    }`} />
-                    <span className="hidden lg:inline">{item.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="transition-transform duration-200 group-hover:scale-110">
+                        {React.createElement(item.iconType, {
+                          className: `w-4 h-4 ${isActive ? 'text-indigo-300' : 'text-gray-400 group-hover:text-indigo-300'}`
+                        })}
+                      </span>
+                      <span className="hidden lg:inline">{item.name}</span>
+                    </div>
                     
                     {/* Active indicator */}
                     {isActive && (
@@ -250,7 +269,6 @@ const Navbar: React.FC = () => {
               <nav className="flex-1 p-4 space-y-2">
                 {navigation.map((item) => {
                   const isActive = location.pathname === item.path;
-                  const IconComponent = item.icon;
                   return (
                     <Link
                       key={item.name}
@@ -262,7 +280,9 @@ const Navbar: React.FC = () => {
                           : 'text-gray-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <IconComponent className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
+                      {React.createElement(item.iconType, {
+                        className: `mr-3 h-5 w-5 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`
+                      })}
                       {item.name}
                       {isActive && (
                         <div className="ml-auto w-2 h-2 bg-indigo-400 rounded-full" />
