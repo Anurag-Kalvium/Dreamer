@@ -90,8 +90,8 @@ const Navbar: React.FC = () => {
         }}
       >
         <div className="relative">
-          {/* Main glassmorphic pill container */}
-          <div className={`flex items-center bg-gray-900/20 backdrop-blur-xl border border-white/10 rounded-full px-3 py-3 shadow-2xl ${
+          {/* Main glassmorphic pill container - Reduced height */}
+          <div className={`flex items-center bg-gray-900/20 backdrop-blur-xl border border-white/10 rounded-full px-2 py-2 shadow-2xl ${
             isScrolled ? 'shadow-black/40' : 'shadow-black/20'
           }`}
           style={{
@@ -101,14 +101,14 @@ const Navbar: React.FC = () => {
           }}>
             
             {/* Navigation Items */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               {navigation.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`relative px-4 py-2.5 text-sm font-medium rounded-full transition-all duration-300 flex items-center space-x-2 group ${
+                    className={`relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 flex items-center space-x-2 group ${
                       isActive 
                         ? 'text-white bg-white/20 shadow-lg' 
                         : 'text-gray-300 hover:bg-white/10 hover:text-white'
@@ -122,32 +122,18 @@ const Navbar: React.FC = () => {
                       </span>
                       <span className="hidden lg:inline text-sm">{item.name}</span>
                     </div>
-                    
-                    {/* Active indicator dot */}
-                    {isActive && (
-                      <motion.div
-                        layoutId="navbar-active-dot"
-                        className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full"
-                        initial={false}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 500,
-                          damping: 30
-                        }}
-                      />
-                    )}
                   </Link>
                 );
               })}
             </div>
 
             {/* Profile Section */}
-            <div className="relative ml-4 pl-4 border-l border-white/10">
+            <div className="relative ml-3 pl-3 border-l border-white/10">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-2 px-3 py-2.5 rounded-full hover:bg-white/10 transition-all duration-300 group"
+                className="flex items-center space-x-2 px-2 py-2 rounded-full hover:bg-white/10 transition-all duration-300 group"
               >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium">
                   {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
               </button>
