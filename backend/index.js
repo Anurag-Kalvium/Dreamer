@@ -7,14 +7,24 @@ const { findSymbolsInText } = require('./dreamSymbols');
 const app = express();
 const PORT = process.env.PORT || 5001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-frontend-domain.com', 'https://oneirvision.vercel.app'] 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
 
 // Health check endpoint
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Dream Interpretation API is running' });
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'OneirVision Dream Interpretation API is running',
+    version: '1.0.0'
+  });
 });
 
 // Dream interpretation endpoint
@@ -24,6 +34,10 @@ app.post('/api/interpret', async (req, res) => {
 
     if (!dream) {
       return res.status(400).json({ error: 'Dream description is required' });
+    }
+
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'Gemini API key not configured' });
     }
 
     const prompt = `For the following dream, provide:
@@ -111,7 +125,103 @@ app.post('/api/interpret', async (req, res) => {
   }
 });
 
+// Dream visualization endpoint using Hugging Face
+app.post('/api/visualize', async (req, res) => {
+  try {
+    const { prompt, style = 'dreamlike' } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (!HUGGINGFACE_API_KEY) {
+      return res.status(500).json({ error: 'Hugging Face API key not configured' });
+    }
+
+    // Create a descriptive prompt for dream visualization
+    const enhancedPrompt = `A dreamlike visualization of: ${prompt}${style ? `, in the style of ${style}` : ''}. Highly detailed, 4k, photorealistic, surreal, ethereal, vibrant colors`;
+    
+    console.log('Generating visualization with prompt:', enhancedPrompt);
+    
+    // Call Hugging Face API
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${HUGGINGFACE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          inputs: enhancedPrompt,
+          parameters: {
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+          }
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Hugging Face API Error:', response.status, errorText);
+      return res.status(response.status).json({ 
+        error: 'Failed to generate visualization',
+        details: errorText 
+      });
+    }
+
+    // Get the image as buffer
+    const imageBuffer = await response.buffer();
+    
+    // Convert to base64 for transmission
+    const base64Image = imageBuffer.toString('base64');
+    const imageDataUrl = `data:image/jpeg;base64,${base64Image}`;
+    
+    console.log('Successfully generated visualization');
+    
+    // Prepare response
+    const responseData = {
+      success: true,
+      imageUrl: imageDataUrl,
+      prompt: enhancedPrompt,
+      style,
+      generatedAt: new Date().toISOString()
+    };
+    
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error in dream visualization:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message,
+    });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Endpoint not found',
+    message: `Cannot ${req.method} ${req.originalUrl}`
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 OneirVision API Server running on http://localhost:${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔑 Gemini API: ${GEMINI_API_KEY ? '✅ Configured' : '❌ Missing'}`);
+  console.log(`🎨 Hugging Face API: ${HUGGINGFACE_API_KEY ? '✅ Configured' : '❌ Missing'}`);
 });
+
+module.exports = app;

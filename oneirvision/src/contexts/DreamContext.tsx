@@ -122,7 +122,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     setVisualizationError(null);
   };
 
-  // Dream interpretation function
+  // Dream interpretation function - now uses backend
   const interpretDreamAsync = async (dreamData: { description: string; date?: string; mood?: string[] }) => {
     setInterpretationLoading(true);
     setInterpretationError(null);
@@ -175,47 +175,35 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     }
   };
 
-  // Generate visualization using Hugging Face API
+  // Generate visualization using backend API
   const generateVisualizationAsync = async (dreamDescription: string, style: string = 'dreamlike'): Promise<DreamVisualization | null> => {
     setVisualizationLoading(true);
     setVisualizationError(null);
     
     try {
-      // Create a descriptive prompt
-      const prompt = `A dreamlike visualization of: ${dreamDescription}${style ? `, in the style of ${style}` : ''}. Highly detailed, 4k, photorealistic`;
+      console.log('Generating visualization with description:', dreamDescription);
+      
+      // Call our backend API for dream visualization
+      const response = await fetch(`${API_BASE_URL}/api/visualize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: dreamDescription,
+          style: style
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate visualization');
+      }
+
+      const data = await response.json();
       
       // Generate a unique ID for this visualization
       const visualizationId = `vis_${Date.now()}`;
-      
-      console.log('Generating visualization with prompt:', prompt);
-      
-      // Call Hugging Face API
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.REACT_APP_HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ 
-            inputs: prompt,
-            parameters: {
-              num_inference_steps: 30,
-              guidance_scale: 7.5,
-            }
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate image');
-      }
-
-      // Convert the response to a blob URL
-      const imageBlob = await response.blob();
-      const imageUrl = URL.createObjectURL(imageBlob);
       
       console.log('Successfully generated visualization');
       
@@ -224,7 +212,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
         id: visualizationId,
         title: `Dream Visualization - ${new Date().toLocaleDateString()}`,
         description: dreamDescription,
-        imageUrl,
+        imageUrl: data.imageUrl,
         style,
         createdAt: new Date().toISOString(),
       };
