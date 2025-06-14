@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion, useAnimation } from 'framer-motion';
 import { ArrowRight, Sparkles, Brain, Eye, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import '../fonts.css';
 
 // Add the fonts to your fonts.css or index.css
 // @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
