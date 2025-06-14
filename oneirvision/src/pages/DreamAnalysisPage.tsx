@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
-import { Sparkles, Brain, Eye, Palette, Zap, Heart, BookOpen, Save, Clock, Download, Star } from 'lucide-react';
+import { Brain, Eye, Palette, Zap, Heart, BookOpen, Save, Clock, Download, Star } from 'lucide-react';
 import type { DreamVisualization } from '../contexts/DreamContext';
 
 const DreamAnalysisPage: React.FC = () => {
@@ -200,19 +200,6 @@ const DreamAnalysisPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }}
           >
-            {/* Badge */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 mb-8"
-            >
-              <Sparkles className="h-5 w-5 text-indigo-300 mr-2" />
-              <span className="text-sm font-medium text-indigo-200">
-                AI-Powered Dream Analysis
-              </span>
-            </motion.div>
-            
             {/* Main Heading */}
             <motion.h1 
               className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 font-heading"
