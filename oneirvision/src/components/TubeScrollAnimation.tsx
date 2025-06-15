@@ -405,7 +405,7 @@ const TubeScrollAnimation: React.FC<TubeScrollAnimationProps> = ({ className = '
         }}
         gl={{
           antialias: true,
-          shadowMap: true,
+          shadowMap: { enabled: true },
         }}
       >
         <TubeGeometry 
