@@ -234,6 +234,14 @@ Dream: "${dream}"`;
         throw new Error(`Failed to generate image ${partNumber}: ${errorText}`);
       }
 
+      // Check if the response is JSON (error) or binary (image)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        console.error(`Hugging Face API returned JSON error for image ${partNumber}:`, errorData);
+        throw new Error(`Hugging Face API error for image ${partNumber}: ${errorData.error || 'Unknown error'}`);
+      }
+
       const imageBuffer = await response.buffer();
       const base64Image = imageBuffer.toString('base64');
       return `data:image/jpeg;base64,${base64Image}`;
