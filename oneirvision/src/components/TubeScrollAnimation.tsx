@@ -20,7 +20,7 @@ function TubeGeometry({ scrollProgress, isFullscreen, onJourneyComplete }: TubeG
   const particlesRef = useRef<THREE.Points>(null);
   const lightRef = useRef<THREE.PointLight>(null);
   const cameraGroupRef = useRef<THREE.Group>(null);
-  const { camera, scene } = useThree();
+  const { camera } = useThree();
 
   // Create tube path based on the provided points
   const points = [
@@ -349,7 +349,7 @@ const TubeScrollAnimation: React.FC<TubeScrollAnimationProps> = ({ className = '
   useEffect(() => {
     if (!containerRef.current || isFullscreen) return;
 
-    const tl = gsap.timeline({
+    gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: 'top center',
