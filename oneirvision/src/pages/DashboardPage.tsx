@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,8 +27,7 @@ import {
   Zap,
   Heart,
   Clock,
-  BarChart3,
-  Calendar
+  BarChart3
 } from 'lucide-react';
 
 // Register ChartJS components
@@ -95,13 +94,7 @@ const DashboardPage: React.FC = () => {
     fetchDreamJournal();
   }, [fetchDreamJournal]);
 
-  useEffect(() => {
-    if (dreamJournal.length > 0) {
-      calculateStats();
-    }
-  }, [dreamJournal]);
-
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
@@ -174,7 +167,13 @@ const DashboardPage: React.FC = () => {
       recentDreams: dreamJournal.slice(0, 3),
       dreamSymbols
     });
-  };
+  }, [dreamJournal]);
+
+  useEffect(() => {
+    if (dreamJournal.length > 0) {
+      calculateStats();
+    }
+  }, [dreamJournal, calculateStats]);
 
   // Chart configurations
   const moodTrendData = {

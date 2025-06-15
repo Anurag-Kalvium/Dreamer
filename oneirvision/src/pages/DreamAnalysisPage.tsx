@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
-import { Brain, Eye, Palette, Zap, Heart, BookOpen, Save, Clock, Download, Star, Split, ArrowRight } from 'lucide-react';
-import type { DreamVisualization, SequentialDreamVisualization } from '../contexts/DreamContext';
+import { Brain, Eye, Palette, Zap, Heart, Save, Clock, Download, Star, Split, ArrowRight } from 'lucide-react';
 
 const DreamAnalysisPage: React.FC = () => {
   const { 
@@ -470,7 +469,7 @@ const DreamAnalysisPage: React.FC = () => {
                           
                           <div className="p-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30">
                             <div className="flex items-center mb-4">
-                              <BookOpen className="h-6 w-6 text-yellow-400 mr-3" />
+                              <Save className="h-6 w-6 text-yellow-400 mr-3" />
                               <h3 className="text-xl font-semibold text-white">Actionable Advice</h3>
                             </div>
                             <p className="text-gray-200">{interpretation.actionableAdvice}</p>
@@ -578,7 +577,7 @@ const DreamAnalysisPage: React.FC = () => {
                           <h3 className="text-xl font-semibold text-white">Recent Visualizations</h3>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {visualizationHistory.map((item: DreamVisualization) => (
+                          {visualizationHistory.map((item) => (
                             <motion.div 
                               key={item.id}
                               className="group relative overflow-hidden rounded-lg border border-white/20 hover:border-indigo-400/50 transition-all"
