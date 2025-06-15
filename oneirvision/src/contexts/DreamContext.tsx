@@ -174,8 +174,20 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to interpret dream');
+        let errorMessage = 'Failed to interpret dream';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // If JSON parsing fails, try to get the text response (likely HTML error page)
+          try {
+            const textResponse = await response.text();
+            errorMessage = `Server error (${response.status}): ${textResponse.substring(0, 100)}...`;
+          } catch (textError) {
+            errorMessage = `Server error (${response.status}): Unable to parse error response`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -228,8 +240,20 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate visualization');
+        let errorMessage = 'Failed to generate visualization';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // If JSON parsing fails, try to get the text response (likely HTML error page)
+          try {
+            const textResponse = await response.text();
+            errorMessage = `Server error (${response.status}): ${textResponse.substring(0, 100)}...`;
+          } catch (textError) {
+            errorMessage = `Server error (${response.status}): Unable to parse error response`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -283,8 +307,20 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate sequential visualization');
+        let errorMessage = 'Failed to generate sequential visualization';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // If JSON parsing fails, try to get the text response (likely HTML error page)
+          try {
+            const textResponse = await response.text();
+            errorMessage = `Server error (${response.status}): ${textResponse.substring(0, 100)}...`;
+          } catch (textError) {
+            errorMessage = `Server error (${response.status}): Unable to parse error response`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
