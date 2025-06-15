@@ -12,9 +12,7 @@ import {
   Users,
   ChevronDown,
   Play,
-  Download,
-  Share2,
-  Heart
+  Download
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import StarField from '../components/StarField';
