@@ -140,19 +140,13 @@ app.post('/api/visualize-sequential', async (req, res) => {
 
     console.log('Processing sequential dream visualization for:', dream);
 
-    // Step 1: Generate two sequential prompts using Gemini
-    const promptGenerationRequest = `You are an AI image prompt generator.  
-Given a dream description, split the dream into two logical parts:
-- Part 1: The first half of the dream — the setup or beginning situation.
-- Part 2: The second half — the action, climax, or what happens next.
+    // Step 1: Generate two sequential prompts using Gemini - SHORTENED PROMPT
+    const promptGenerationRequest = `Split this dream into 2 parts and create short image prompts:
+Dream: "${dream}"
 
-For each part, write a visually descriptive prompt that includes:
-- Important characters, emotions, setting, and objects.
-- Clear environmental and emotional context for image generation.
-- Artistic style: dreamlike, surreal, highly detailed, vibrant colors, fantasy art
-
-Return the two prompts clearly labeled as "Prompt 1" and "Prompt 2".
-Dream: "${dream}"`;
+Return exactly:
+Part 1: [short visual description]
+Part 2: [short visual description]`;
 
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -189,24 +183,25 @@ Dream: "${dream}"`;
     
     console.log('Generated prompts from Gemini:', promptsText);
 
-    // Parse the two prompts
-    const prompt1Match = promptsText.match(/Prompt 1[:\s]*([\s\S]*?)(?=Prompt 2|$)/i);
-    const prompt2Match = promptsText.match(/Prompt 2[:\s]*([\s\S]*?)$/i);
+    // Parse the two prompts - simplified parsing
+    const part1Match = promptsText.match(/Part 1[:\s]*(.*?)(?=Part 2|$)/i);
+    const part2Match = promptsText.match(/Part 2[:\s]*(.*?)$/i);
 
-    if (!prompt1Match || !prompt2Match) {
+    if (!part1Match || !part2Match) {
       return res.status(500).json({ 
         error: 'Failed to parse image prompts from Gemini response',
         details: promptsText 
       });
     }
 
-    const prompt1 = prompt1Match[1].trim();
-    const prompt2 = prompt2Match[1].trim();
+    // Shorten prompts to avoid Hugging Face errors
+    const prompt1 = part1Match[1].trim().substring(0, 100); // Limit to 100 chars
+    const prompt2 = part2Match[1].trim().substring(0, 100); // Limit to 100 chars
 
-    console.log('Parsed Prompt 1:', prompt1);
-    console.log('Parsed Prompt 2:', prompt2);
+    console.log('Shortened Prompt 1:', prompt1);
+    console.log('Shortened Prompt 2:', prompt2);
 
-    // Step 2: Generate images using Hugging Face
+    // Step 2: Generate images using Hugging Face - IMPROVED ERROR HANDLING
     const generateImage = async (prompt, partNumber) => {
       console.log(`Generating image ${partNumber} with prompt:`, prompt);
       
@@ -219,19 +214,22 @@ Dream: "${dream}"`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ 
-            inputs: prompt,
-            parameters: {
-              num_inference_steps: 30,
-              guidance_scale: 7.5,
-            }
+            inputs: prompt // Use "inputs" not "prompt"
           }),
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Hugging Face API Error for image ${partNumber}:`, response.status, errorText);
-        throw new Error(`Failed to generate image ${partNumber}: ${errorText}`);
+        console.error(`Hugging Face API Error for image ${partNumber} (${response.status}):`, errorText);
+        
+        // Try to parse as JSON for better error details
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(`Hugging Face error ${response.status}: ${errorJson.error || errorText}`);
+        } catch (parseError) {
+          throw new Error(`Hugging Face error ${response.status}: ${errorText}`);
+        }
       }
 
       // Check if the response is JSON (error) or binary (image)
@@ -295,12 +293,12 @@ app.post('/api/visualize', async (req, res) => {
       return res.status(500).json({ error: 'Hugging Face API key not configured' });
     }
 
-    // Create a descriptive prompt for dream visualization
-    const enhancedPrompt = `A dreamlike visualization of: ${prompt}${style ? `, in the style of ${style}` : ''}. Highly detailed, 4k, photorealistic, surreal, ethereal, vibrant colors`;
+    // Create a SHORT descriptive prompt for dream visualization
+    const shortPrompt = prompt.substring(0, 80); // Limit to 80 characters
     
-    console.log('Generating visualization with prompt:', enhancedPrompt);
+    console.log('Generating visualization with short prompt:', shortPrompt);
     
-    // Call Hugging Face API
+    // Call Hugging Face API with improved error handling
     const response = await fetch(
       "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
       {
@@ -310,21 +308,38 @@ app.post('/api/visualize', async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ 
-          inputs: enhancedPrompt,
-          parameters: {
-            num_inference_steps: 30,
-            guidance_scale: 7.5,
-          }
+          inputs: shortPrompt // Use "inputs" not "prompt"
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Hugging Face API Error:', response.status, errorText);
-      return res.status(response.status).json({ 
+      console.error(`Hugging Face API Error (${response.status}):`, errorText);
+      
+      // Try to parse as JSON for better error details
+      try {
+        const errorJson = JSON.parse(errorText);
+        return res.status(response.status).json({ 
+          error: 'Failed to generate visualization',
+          details: errorJson.error || errorText 
+        });
+      } catch (parseError) {
+        return res.status(response.status).json({ 
+          error: 'Failed to generate visualization',
+          details: errorText 
+        });
+      }
+    }
+
+    // Check if the response is JSON (error) or binary (image)
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorData = await response.json();
+      console.error('Hugging Face API returned JSON error:', errorData);
+      return res.status(500).json({ 
         error: 'Failed to generate visualization',
-        details: errorText 
+        details: errorData.error || 'Unknown error' 
       });
     }
 
@@ -342,7 +357,7 @@ app.post('/api/visualize', async (req, res) => {
     const responseData = {
       success: true,
       imageUrl: imageDataUrl,
-      prompt: enhancedPrompt,
+      prompt: shortPrompt,
       style,
       generatedAt: new Date().toISOString()
     };
