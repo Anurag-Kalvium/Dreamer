@@ -20,13 +20,10 @@ import {
   Eye, 
   TrendingUp, 
   Download, 
-  Play, 
-  Pause, 
   Star,
   Moon,
   Zap,
   Heart,
-  Clock,
   BarChart3,
   Sparkles
 } from 'lucide-react';
@@ -71,7 +68,6 @@ const DashboardPage: React.FC = () => {
     lucidDreams: 0,
     lucidPercentage: 0
   });
-  const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
 
   const moodColors = {
     peaceful: '#60A5FA',

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Square, Play, Pause } from 'lucide-react';
+import { Mic, Square, Play, Pause } from 'lucide-react';
 
 interface SpeechToTextProps {
   onTextUpdate: (text: string) => void;

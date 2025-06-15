@@ -11,7 +11,6 @@ import {
   TrendingUp,
   ChevronDown,
   Play,
-  Download,
   Shield,
   Heart,
   Target,
