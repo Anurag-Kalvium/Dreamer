@@ -1,4 +1,4 @@
-// API utility functions
+// API utility functions for direct API calls
 
 const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
 const HUGGINGFACE_API_KEY = process.env.REACT_APP_HUGGINGFACE_API_KEY;
@@ -57,32 +57,41 @@ Dream to analyze: ${dreamText}`
   }
 };
 
+// Generate image using Hugging Face API directly (following their docs)
 export const generateImage = async (prompt: string): Promise<string> => {
   try {
+    console.log('Generating image with prompt:', prompt);
+    
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+      "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
       {
-        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        method: "POST",
+        body: JSON.stringify({
           inputs: `${prompt}, dreamlike, ethereal, surreal, vibrant colors, highly detailed, digital art`,
-          options: {
-            wait_for_model: true,
-          },
+          parameters: {
+            num_inference_steps: 30,
+            guidance_scale: 7.5,
+          }
         }),
       }
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Hugging Face API error: ${response.status} - ${error}`);
+      const errorText = await response.text();
+      console.error('Hugging Face API Error:', response.status, errorText);
+      throw new Error(`Hugging Face API error: ${response.status} - ${errorText}`);
     }
 
+    // Convert response to blob and create object URL
     const blob = await response.blob();
-    return URL.createObjectURL(blob);
+    const imageUrl = URL.createObjectURL(blob);
+    
+    console.log('Successfully generated image');
+    return imageUrl;
   } catch (error) {
     console.error('Error generating image:', error);
     throw new Error('Failed to generate image. Please try again later.');
@@ -95,6 +104,8 @@ export const generateSequentialVisualization = async (dreamText: string): Promis
   images: { image1: string; image2: string };
 }> => {
   try {
+    console.log('Starting sequential visualization for:', dreamText);
+
     // Step 1: Generate two sequential prompts using Gemini
     const promptGenerationRequest = `You are an AI image prompt generator.  
 Given a dream description, split the dream into two logical parts:
@@ -155,7 +166,8 @@ Dream: "${dreamText}"`;
     console.log('Parsed Prompt 1:', prompt1);
     console.log('Parsed Prompt 2:', prompt2);
 
-    // Step 2: Generate images using Hugging Face
+    // Step 2: Generate images using Hugging Face API directly
+    console.log('Generating images...');
     const [image1, image2] = await Promise.all([
       generateImage(prompt1),
       generateImage(prompt2)

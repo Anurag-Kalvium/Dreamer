@@ -208,7 +208,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     }
   };
 
-  // Generate visualization using direct API calls
+  // Generate visualization using direct Hugging Face API calls
   const generateVisualizationAsync = async (dreamDescription: string, style: string = 'dreamlike'): Promise<DreamVisualization | null> => {
     setVisualizationLoading(true);
     setVisualizationError(null);
