@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { interpretDream, generateImage, generateSequentialVisualization, parseDreamInterpretation } from '../utils/api';
+import { API_BASE_URL } from '../config';
+import { generateImage, generateSequentialVisualization } from '../utils/api';
 
 // Dream interpretation model
 export interface DreamInterpretation {
@@ -154,7 +155,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     setSequentialVisualizationError(null);
   };
 
-  // Dream interpretation function - now uses direct API calls
+  // Dream interpretation function - uses your deployed backend
   const interpretDreamAsync = async (dreamData: { description: string; date?: string; mood?: string[] }) => {
     setInterpretationLoading(true);
     setInterpretationError(null);
@@ -162,23 +163,35 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     try {
       console.log('Interpreting dream:', dreamData);
       
-      // Call the interpretDream API function
-      const rawInterpretation = await interpretDream(dreamData.description);
-      
-      // Parse the markdown response
-      const parsedInterpretation = parseDreamInterpretation(rawInterpretation);
+      // Call your deployed backend API for dream interpretation
+      const response = await fetch(`${API_BASE_URL}/api/interpret`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dream: dreamData.description
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to interpret dream');
+      }
+
+      const data = await response.json();
       
       // Format the response to match our DreamInterpretation interface
       const interpretation: DreamInterpretation = {
         id: `int-${Date.now()}`,
-        summary: parsedInterpretation.overallMeaning || 'No interpretation available',
-        symbols: parsedInterpretation.keySymbols || [],
-        psychological: parsedInterpretation.psychologicalInsights || 'No psychological analysis available',
-        emotional: parsedInterpretation.emotionalThemes || 'No emotional analysis available',
-        advice: parsedInterpretation.actionableAdvice || 'No advice available',
-        psychologicalAnalysis: parsedInterpretation.psychologicalInsights || 'No detailed analysis available',
-        emotionalInsights: parsedInterpretation.emotionalThemes || 'No emotional insights available',
-        actionableAdvice: parsedInterpretation.actionableAdvice || 'No specific advice available',
+        summary: data.interpretation || 'No interpretation available',
+        symbols: Array.isArray(data.symbols) ? data.symbols : [],
+        psychological: data.interpretation || 'No psychological analysis available',
+        emotional: data.emotions || 'No emotional analysis available',
+        advice: data.advice || 'No advice available',
+        psychologicalAnalysis: data.interpretation || 'No detailed analysis available',
+        emotionalInsights: data.emotions || 'No emotional insights available',
+        actionableAdvice: data.advice || 'No specific advice available',
         createdAt: new Date().toISOString(),
       };
       
@@ -203,7 +216,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     try {
       console.log('Generating visualization with description:', dreamDescription);
       
-      // Call the generateImage API function
+      // Call the generateImage API function directly
       const imageUrl = await generateImage(dreamDescription);
       
       // Generate a unique ID for this visualization
@@ -243,7 +256,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     try {
       console.log('Generating sequential visualization with description:', dreamDescription);
       
-      // Call the generateSequentialVisualization API function
+      // Call the generateSequentialVisualization API function directly
       const result = await generateSequentialVisualization(dreamDescription);
       
       // Generate a unique ID for this sequential visualization
