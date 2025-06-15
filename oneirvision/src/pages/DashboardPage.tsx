@@ -27,7 +27,8 @@ import {
   Zap,
   Heart,
   Clock,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 
 // Register ChartJS components
@@ -51,6 +52,8 @@ interface DreamStats {
   weeklyActivity: number[];
   recentDreams: any[];
   dreamSymbols: { symbol: string; count: number }[];
+  lucidDreams: number;
+  lucidPercentage: number;
 }
 
 const DashboardPage: React.FC = () => {
@@ -64,7 +67,9 @@ const DashboardPage: React.FC = () => {
     moodDistribution: {},
     weeklyActivity: [0, 0, 0, 0, 0, 0, 0],
     recentDreams: [],
-    dreamSymbols: []
+    dreamSymbols: [],
+    lucidDreams: 0,
+    lucidPercentage: 0
   });
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
 
@@ -76,7 +81,8 @@ const DashboardPage: React.FC = () => {
     happy: '#10B981',
     sad: '#6B7280',
     confused: '#8B5CF6',
-    excited: '#F97316'
+    excited: '#F97316',
+    lucid: '#FFD700'
   };
 
   const moodEmojis = {
@@ -87,7 +93,8 @@ const DashboardPage: React.FC = () => {
     happy: '☀️',
     sad: '☁️',
     confused: '🌀',
-    excited: '🎆'
+    excited: '🎆',
+    lucid: '✨'
   };
 
   useEffect(() => {
@@ -98,10 +105,18 @@ const DashboardPage: React.FC = () => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    // Calculate mood distribution
+    // Calculate mood distribution and lucid dreams
     const moodCounts: { [key: string]: number } = {};
+    let lucidCount = 0;
+    
     dreamJournal.forEach(dream => {
       moodCounts[dream.mood] = (moodCounts[dream.mood] || 0) + 1;
+      
+      // Check if dream contains lucid indicators
+      const dreamText = (dream.title + ' ' + dream.description).toLowerCase();
+      if (dreamText.includes('lucid') || dreamText.includes('aware') || dreamText.includes('control')) {
+        lucidCount++;
+      }
     });
 
     // Calculate weekly activity
@@ -137,7 +152,7 @@ const DashboardPage: React.FC = () => {
 
     // Extract common symbols (simplified)
     const symbolCounts: { [key: string]: number } = {};
-    const commonSymbols = ['water', 'flying', 'house', 'animal', 'forest', 'car', 'people', 'school'];
+    const commonSymbols = ['water', 'flying', 'house', 'animal', 'forest', 'car', 'people', 'school', 'lucid', 'control'];
     
     dreamJournal.forEach(dream => {
       const description = dream.description.toLowerCase();
@@ -157,6 +172,8 @@ const DashboardPage: React.FC = () => {
     const mostCommonMood = Object.entries(moodCounts)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || 'peaceful';
 
+    const lucidPercentage = dreamJournal.length > 0 ? Math.round((lucidCount / dreamJournal.length) * 100) : 0;
+
     setStats({
       totalDreams: dreamJournal.length,
       streakDays: streak,
@@ -165,7 +182,9 @@ const DashboardPage: React.FC = () => {
       moodDistribution: moodCounts,
       weeklyActivity,
       recentDreams: dreamJournal.slice(0, 3),
-      dreamSymbols
+      dreamSymbols,
+      lucidDreams: lucidCount,
+      lucidPercentage
     });
   }, [dreamJournal]);
 
@@ -295,6 +314,15 @@ const DashboardPage: React.FC = () => {
               🔥
             </motion.div>
           )}
+          {title === 'Lucid Dreams' && (
+            <motion.div 
+              className="text-2xl"
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              ✨
+            </motion.div>
+          )}
         </div>
         <div className="space-y-1">
           <p className="text-3xl font-bold text-white">{value}</p>
@@ -383,13 +411,13 @@ const DashboardPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              Your personal analytics dashboard for exploring dream patterns and unlocking subconscious insights
+              Your personal analytics dashboard for exploring dream patterns, lucid dreaming progress, and unlocking subconscious insights
             </motion.p>
           </motion.div>
 
-          {/* Stats Grid */}
+          {/* Stats Grid - Updated with Lucid Dreams */}
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
@@ -414,6 +442,13 @@ const DashboardPage: React.FC = () => {
               icon={<TrendingUp className="h-8 w-8 text-green-400" />}
               gradient="from-green-500 to-teal-600"
               subtitle="Dreams this week"
+            />
+            <StatCard
+              title="Lucid Dreams"
+              value={stats.lucidDreams}
+              icon={<Sparkles className="h-8 w-8 text-yellow-400" />}
+              gradient="from-yellow-500 to-amber-600"
+              subtitle={`${stats.lucidPercentage}% of dreams`}
             />
             <StatCard
               title="Dominant Mood"
@@ -501,6 +536,11 @@ const DashboardPage: React.FC = () => {
                             {moodEmojis[dream.mood as keyof typeof moodEmojis]}
                           </span>
                           <h4 className="font-semibold text-white">{dream.title}</h4>
+                          {(dream.description.toLowerCase().includes('lucid') || 
+                            dream.description.toLowerCase().includes('aware') || 
+                            dream.description.toLowerCase().includes('control')) && (
+                            <span className="ml-2 text-yellow-400">✨</span>
+                          )}
                         </div>
                         <p className="text-gray-400 text-sm line-clamp-2">
                           {dream.description}
@@ -559,6 +599,8 @@ const DashboardPage: React.FC = () => {
                         {symbol.symbol === 'car' && '🚗'}
                         {symbol.symbol === 'people' && '👥'}
                         {symbol.symbol === 'school' && '🏫'}
+                        {symbol.symbol === 'lucid' && '✨'}
+                        {symbol.symbol === 'control' && '🎮'}
                       </div>
                       <p className="text-white font-semibold capitalize">{symbol.symbol}</p>
                       <p className="text-gray-400 text-sm">{symbol.count} times</p>
@@ -575,7 +617,7 @@ const DashboardPage: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Action Cards - matching homepage feature grid style */}
+          {/* Action Cards - Updated with Lucid Dreaming */}
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
             initial={{ opacity: 0, y: 40 }}
@@ -586,36 +628,36 @@ const DashboardPage: React.FC = () => {
               {
                 icon: <Brain className="h-8 w-8 text-indigo-400" />,
                 title: 'AI Insights',
-                description: `You tend to dream more on weekends. Your ${stats.mostCommonMood} dreams often feature transformation themes.`,
+                description: `You tend to dream more on weekends. Your ${stats.mostCommonMood} dreams often feature transformation themes. ${stats.lucidDreams > 0 ? `You've achieved lucidity in ${stats.lucidPercentage}% of your dreams!` : 'Try reality checks to increase lucid dreaming.'}`,
                 gradient: 'from-indigo-500/20 to-purple-500/20',
                 border: 'border-indigo-500/20'
               },
               {
+                icon: <Sparkles className="h-8 w-8 text-yellow-400" />,
+                title: 'Lucid Training',
+                description: 'Enhance your lucid dreaming abilities with guided techniques and reality check reminders.',
+                gradient: 'from-yellow-500/20 to-amber-500/20',
+                border: 'border-yellow-500/20',
+                action: (
+                  <Link 
+                    to="/lucidity"
+                    className="w-full mt-4 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Learn Lucid Dreaming
+                  </Link>
+                )
+              },
+              {
                 icon: <Download className="h-8 w-8 text-green-400" />,
                 title: 'Export Analytics',
-                description: 'Download your complete dream insights and analytics report.',
+                description: 'Download your complete dream insights and analytics report including lucid dream statistics.',
                 gradient: 'from-green-500/20 to-teal-500/20',
                 border: 'border-green-500/20',
                 action: (
                   <button className="w-full mt-4 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition-colors flex items-center justify-center">
                     <Download className="mr-2 h-4 w-4" />
                     Download Report
-                  </button>
-                )
-              },
-              {
-                icon: <Clock className="h-8 w-8 text-purple-400" />,
-                title: 'Ambient Focus',
-                description: 'Enhance your dream analysis with calming ambient sounds.',
-                gradient: 'from-purple-500/20 to-pink-500/20',
-                border: 'border-purple-500/20',
-                action: (
-                  <button 
-                    onClick={() => setIsAmbientPlaying(!isAmbientPlaying)}
-                    className="w-full mt-4 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    {isAmbientPlaying ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-                    {isAmbientPlaying ? 'Pause' : 'Play'} Ambient
                   </button>
                 )
               }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
 import { FiPlus, FiEdit3, FiTrash2, FiSearch, FiHeart, FiMoon } from 'react-icons/fi';
-import { Calendar } from 'lucide-react';
+import { Calendar, Sparkles } from 'lucide-react';
 import SpeechToText from '../components/SpeechToText';
 import type { DreamEntry } from '../contexts/DreamContext';
 
@@ -27,7 +27,8 @@ const JournalPage: React.FC = () => {
     description: '',
     mood: 'peaceful',
     tags: [] as string[],
-    date: new Date().toISOString().slice(0, 16)
+    date: new Date().toISOString().slice(0, 16),
+    isLucid: false
   });
 
   const moodOptions = [
@@ -38,7 +39,8 @@ const JournalPage: React.FC = () => {
     { value: 'happy', label: 'Happy', emoji: '☀️', color: 'from-green-400 to-blue-500' },
     { value: 'sad', label: 'Sad', emoji: '☁️', color: 'from-gray-400 to-blue-400' },
     { value: 'confused', label: 'Confused', emoji: '🌀', color: 'from-indigo-400 to-purple-500' },
-    { value: 'excited', label: 'Excited', emoji: '🎆', color: 'from-pink-400 to-red-500' }
+    { value: 'excited', label: 'Excited', emoji: '🎆', color: 'from-pink-400 to-red-500' },
+    { value: 'lucid', label: 'Lucid', emoji: '✨', color: 'from-yellow-400 to-amber-500' }
   ];
 
   useEffect(() => {
@@ -62,16 +64,21 @@ const JournalPage: React.FC = () => {
     e.preventDefault();
     
     try {
+      const dreamData = {
+        ...formData,
+        tags: formData.tags,
+        // Add lucid tag if it's a lucid dream
+        mood: formData.isLucid ? 'lucid' : formData.mood
+      };
+
       if (editingDream) {
         await updateDreamEntryAsync({
           ...editingDream,
-          ...formData,
-          tags: formData.tags
+          ...dreamData
         });
       } else {
         await addDreamEntryAsync({
-          ...formData,
-          tags: formData.tags,
+          ...dreamData,
           favorite: false,
           interpretation: '',
           visualization: '',
@@ -86,7 +93,8 @@ const JournalPage: React.FC = () => {
         description: '',
         mood: 'peaceful',
         tags: [],
-        date: new Date().toISOString().slice(0, 16)
+        date: new Date().toISOString().slice(0, 16),
+        isLucid: false
       });
     } catch (error) {
       console.error('Error saving dream:', error);
@@ -98,9 +106,13 @@ const JournalPage: React.FC = () => {
     setFormData({
       title: dream.title,
       description: dream.description,
-      mood: dream.mood,
+      mood: dream.mood === 'lucid' ? 'peaceful' : dream.mood,
       tags: dream.tags || [],
-      date: new Date(dream.date).toISOString().slice(0, 16)
+      date: new Date(dream.date).toISOString().slice(0, 16),
+      isLucid: dream.mood === 'lucid' || 
+               dream.description.toLowerCase().includes('lucid') ||
+               dream.description.toLowerCase().includes('aware') ||
+               dream.description.toLowerCase().includes('control')
     });
     setIsModalOpen(true);
   };
@@ -133,6 +145,13 @@ const JournalPage: React.FC = () => {
       ...prev,
       description: text
     }));
+  };
+
+  const isLucidDream = (dream: DreamEntry) => {
+    return dream.mood === 'lucid' || 
+           dream.description.toLowerCase().includes('lucid') ||
+           dream.description.toLowerCase().includes('aware') ||
+           dream.description.toLowerCase().includes('control');
   };
 
   if (journalLoading) {
@@ -279,13 +298,27 @@ const JournalPage: React.FC = () => {
             {filteredDreams.map((dream, index) => (
               <motion.div
                 key={dream.id}
-                className="group bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10"
+                className="group bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 relative"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
                 whileHover={{ y: -5 }}
               >
+                {/* Lucid Dream Indicator */}
+                {isLucidDream(dream) && (
+                  <div className="absolute top-3 right-3">
+                    <motion.div
+                      className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs font-medium"
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Lucid
+                    </motion.div>
+                  </div>
+                )}
+
                 {/* Card Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -398,7 +431,7 @@ const JournalPage: React.FC = () => {
             onClick={() => setIsModalOpen(false)}
           >
             <motion.div
-              className="w-full max-w-2xl bg-gray-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+              className="w-full max-w-2xl bg-gray-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -456,7 +489,7 @@ const JournalPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, mood: e.target.value })}
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                     >
-                      {moodOptions.map(mood => (
+                      {moodOptions.filter(mood => mood.value !== 'lucid').map(mood => (
                         <option key={mood.value} value={mood.value}>
                           {mood.emoji} {mood.label}
                         </option>
@@ -475,6 +508,26 @@ const JournalPage: React.FC = () => {
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                     />
                   </div>
+                </div>
+
+                {/* Lucid Dream Toggle */}
+                <div className="flex items-center justify-between p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-6 w-6 text-yellow-400" />
+                    <div>
+                      <h3 className="text-white font-medium">Lucid Dream</h3>
+                      <p className="text-gray-400 text-sm">Were you aware you were dreaming?</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isLucid}
+                      onChange={(e) => setFormData({ ...formData, isLucid: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                  </label>
                 </div>
 
                 <div className="flex gap-3 pt-4">
