@@ -10,7 +10,8 @@ import {
   FiX, 
   FiUser,
   FiLogOut,
-  FiMoon
+  FiMoon,
+  FiSettings
 } from 'react-icons/fi';
 import { IconType } from 'react-icons';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,7 +80,7 @@ const Navbar: React.FC = () => {
     <>
       {/* Desktop Glassmorphism Pill Navbar - Centered */}
       <motion.nav 
-  className="fixed top-6 left-0 right-0 z-50 hidden md:flex justify-center"
+        className="fixed top-6 left-0 right-0 z-50 hidden md:flex justify-center"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ 
@@ -163,10 +164,14 @@ const Navbar: React.FC = () => {
 
                     {/* Profile Actions */}
                     <div className="p-2">
-                      <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                        <FiUser className="w-4 h-4" />
+                      <Link 
+                        to="/profile-settings"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                      >
+                        <FiSettings className="w-4 h-4" />
                         <span>Profile Settings</span>
-                      </button>
+                      </Link>
                       <button 
                         onClick={logout}
                         className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
@@ -281,10 +286,14 @@ const Navbar: React.FC = () => {
               
               {/* User Actions */}
               <div className="p-4 border-t border-white/10 space-y-2">
-                <button className="w-full flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all">
-                  <FiUser className="mr-3 h-5 w-5" />
+                <Link
+                  to="/profile-settings"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center px-4 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <FiSettings className="mr-3 h-5 w-5" />
                   Profile Settings
-                </button>
+                </Link>
                 <button 
                   onClick={() => {
                     logout();

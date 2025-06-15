@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
 import { FiPlus, FiEdit3, FiTrash2, FiSearch, FiHeart, FiMoon } from 'react-icons/fi';
+import { Calendar } from 'lucide-react';
+import SpeechToText from '../components/SpeechToText';
 import type { DreamEntry } from '../contexts/DreamContext';
 
 const JournalPage: React.FC = () => {
@@ -124,6 +126,13 @@ const JournalPage: React.FC = () => {
   const getMoodColor = (mood: string) => {
     const moodOption = moodOptions.find(m => m.value === mood);
     return moodOption?.color || 'from-blue-400 to-indigo-500';
+  };
+
+  const handleSpeechToTextUpdate = (text: string) => {
+    setFormData(prev => ({
+      ...prev,
+      description: text
+    }));
   };
 
   if (journalLoading) {
@@ -287,9 +296,10 @@ const JournalPage: React.FC = () => {
                       <h3 className="text-lg font-semibold text-white line-clamp-1">
                         {dream.title}
                       </h3>
-                      <p className="text-sm text-gray-400">
+                      <div className="flex items-center gap-1 text-sm text-gray-400">
+                        <Calendar className="h-4 w-4 text-gray-500" />
                         {new Date(dream.date).toLocaleDateString()}
-                      </p>
+                      </div>
                     </div>
                   </div>
                   
@@ -417,14 +427,23 @@ const JournalPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Dream Description
                   </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={6}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
-                    placeholder="Describe your dream in detail..."
-                    required
-                  />
+                  <div className="relative">
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={6}
+                      className="w-full px-4 py-3 pr-16 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
+                      placeholder="Describe your dream in detail..."
+                      required
+                    />
+                    {/* Speech-to-Text Component */}
+                    <div className="absolute top-3 right-3">
+                      <SpeechToText 
+                        onTextUpdate={handleSpeechToTextUpdate}
+                        className="relative"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
