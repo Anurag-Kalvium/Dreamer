@@ -9,6 +9,7 @@
     "@react-oauth/google": "0.12.2",
     "@react-three/drei": "^9.118.0",
     "@react-three/fiber": "^8.17.10",
+    "@splinetool/react-spline": "^4.0.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/dom": "10.4.0",
