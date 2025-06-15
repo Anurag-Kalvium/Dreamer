@@ -242,7 +242,9 @@ Dream: "${dream}"`;
         throw new Error(`Hugging Face API error for image ${partNumber}: ${errorData.error || 'Unknown error'}`);
       }
 
-      const imageBuffer = await response.buffer();
+      // Fix: Use arrayBuffer() instead of buffer() for node-fetch
+      const imageArrayBuffer = await response.arrayBuffer();
+      const imageBuffer = Buffer.from(imageArrayBuffer);
       const base64Image = imageBuffer.toString('base64');
       return `data:image/jpeg;base64,${base64Image}`;
     };
@@ -326,8 +328,9 @@ app.post('/api/visualize', async (req, res) => {
       });
     }
 
-    // Get the image as buffer
-    const imageBuffer = await response.buffer();
+    // Fix: Use arrayBuffer() instead of buffer() for node-fetch
+    const imageArrayBuffer = await response.arrayBuffer();
+    const imageBuffer = Buffer.from(imageArrayBuffer);
     
     // Convert to base64 for transmission
     const base64Image = imageBuffer.toString('base64');
