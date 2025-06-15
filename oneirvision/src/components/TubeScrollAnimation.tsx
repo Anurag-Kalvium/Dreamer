@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, Text, Float } from '@react-three/drei';
+import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -170,7 +170,7 @@ const TubeScrollAnimation: React.FC<TubeScrollAnimationProps> = ({ className = '
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const tl = gsap.timeline({
+    gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: 'top center',
