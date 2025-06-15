@@ -18,7 +18,6 @@ import { Link } from 'react-router-dom';
 import { 
   Brain, 
   Eye, 
-  BookOpen, 
   TrendingUp, 
   Download, 
   Play, 
@@ -28,7 +27,6 @@ import {
   Zap,
   Heart,
   Clock,
-  Target,
   BarChart3,
   Calendar
 } from 'lucide-react';
