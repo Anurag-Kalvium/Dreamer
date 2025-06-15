@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../config';
-import { generateImage, generateSequentialVisualization } from '../utils/api';
 
 // Dream interpretation model
 export interface DreamInterpretation {
@@ -208,7 +207,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     }
   };
 
-  // Generate visualization using direct Hugging Face API calls
+  // Generate visualization using backend API
   const generateVisualizationAsync = async (dreamDescription: string, style: string = 'dreamlike'): Promise<DreamVisualization | null> => {
     setVisualizationLoading(true);
     setVisualizationError(null);
@@ -216,8 +215,24 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     try {
       console.log('Generating visualization with description:', dreamDescription);
       
-      // Call the generateImage API function directly
-      const imageUrl = await generateImage(dreamDescription);
+      // Call the backend API for image generation
+      const response = await fetch(`${API_BASE_URL}/api/visualize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dream: dreamDescription,
+          style: style
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate visualization');
+      }
+
+      const data = await response.json();
       
       // Generate a unique ID for this visualization
       const visualizationId = `vis_${Date.now()}`;
@@ -229,7 +244,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
         id: visualizationId,
         title: `Dream Visualization - ${new Date().toLocaleDateString()}`,
         description: dreamDescription,
-        imageUrl: imageUrl,
+        imageUrl: data.imageUrl,
         style,
         createdAt: new Date().toISOString(),
       };
@@ -248,7 +263,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     }
   };
 
-  // Generate sequential visualization using direct API calls
+  // Generate sequential visualization using backend API
   const generateSequentialVisualizationAsync = async (dreamDescription: string): Promise<SequentialDreamVisualization | null> => {
     setSequentialVisualizationLoading(true);
     setSequentialVisualizationError(null);
@@ -256,8 +271,23 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     try {
       console.log('Generating sequential visualization with description:', dreamDescription);
       
-      // Call the generateSequentialVisualization API function directly
-      const result = await generateSequentialVisualization(dreamDescription);
+      // Call the backend API for sequential visualization
+      const response = await fetch(`${API_BASE_URL}/api/sequential-visualize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dream: dreamDescription
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate sequential visualization');
+      }
+
+      const data = await response.json();
       
       // Generate a unique ID for this sequential visualization
       const sequentialVisualizationId = `seq_vis_${Date.now()}`;
@@ -268,8 +298,8 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       const newSequentialVisualization: SequentialDreamVisualization = {
         id: sequentialVisualizationId,
         dream: dreamDescription,
-        prompts: result.prompts,
-        images: result.images,
+        prompts: data.prompts,
+        images: data.images,
         createdAt: new Date().toISOString(),
       };
       
