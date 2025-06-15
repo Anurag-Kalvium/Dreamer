@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
-import { FiPlus, FiEdit3, FiTrash2, FiSearch, FiFilter, FiCalendar, FiHeart, FiMoon, FiSun, FiCloud, FiZap } from 'react-icons/fi';
+import { FiPlus, FiEdit3, FiTrash2, FiSearch, FiHeart, FiMoon, FiSun, FiCloud, FiZap } from 'react-icons/fi';
 import type { DreamEntry } from '../contexts/DreamContext';
 
 const JournalPage: React.FC = () => {
