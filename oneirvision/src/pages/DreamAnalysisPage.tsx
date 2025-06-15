@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useDreamContext } from '../contexts/DreamContext';
-import { Brain, Eye, Palette, Zap, Heart, BookOpen, Save, Clock, Download, Star } from 'lucide-react';
-import type { DreamVisualization } from '../contexts/DreamContext';
+import { Brain, Eye, Palette, Zap, Heart, BookOpen, Save, Clock, Download, Star, Split, ArrowRight } from 'lucide-react';
+import type { DreamVisualization, SequentialDreamVisualization } from '../contexts/DreamContext';
 
 const DreamAnalysisPage: React.FC = () => {
   const { 
@@ -16,13 +16,17 @@ const DreamAnalysisPage: React.FC = () => {
     visualizationLoading,
     visualizationError,
     generateVisualizationAsync,
+    sequentialVisualization,
+    sequentialVisualizationLoading,
+    sequentialVisualizationError,
+    generateSequentialVisualizationAsync,
     downloadVisualization,
   } = useDreamContext();
   
   const [dreamDescription, setDreamDescription] = useState('');
   const [dreamDate, setDreamDate] = useState('');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'interpretation' | 'visualization'>('interpretation');
+  const [activeTab, setActiveTab] = useState<'interpretation' | 'visualization' | 'sequential'>('interpretation');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -31,6 +35,7 @@ const DreamAnalysisPage: React.FC = () => {
     "I was flying over a city made of crystal, and I could see my reflection in every building. The sky was purple and filled with floating islands.",
     "I was underwater in an ancient temple, breathing normally. Fish with human faces were guiding me to a glowing artifact.",
     "I was in a forest where the trees had eyes and whispered secrets. The ground beneath me shifted like waves on an ocean.",
+    "I was travelling in a bus on a mountain and suddenly it collided with rocks and fell down with all the passengers in it.",
   ];
   
   const [currentExampleIndex, setCurrentExampleIndex] = useState(
@@ -111,6 +116,16 @@ const DreamAnalysisPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error analyzing dream:', error);
+    }
+  };
+
+  const handleSequentialVisualization = async () => {
+    if (!dreamDescription.trim()) return;
+    
+    try {
+      await generateSequentialVisualizationAsync(dreamDescription);
+    } catch (error) {
+      console.error('Error generating sequential visualization:', error);
     }
   };
 
@@ -322,6 +337,28 @@ const DreamAnalysisPage: React.FC = () => {
                       </>
                     )}
                   </motion.button>
+
+                  {/* Sequential Visualization Button */}
+                  <motion.button
+                    type="button"
+                    onClick={handleSequentialVisualization}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center space-x-2"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={sequentialVisualizationLoading || !dreamDescription.trim()}
+                  >
+                    {sequentialVisualizationLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                        <span>Creating Sequential...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Split className="h-5 w-5" />
+                        <span>Create Sequential Story</span>
+                      </>
+                    )}
+                  </motion.button>
                 </form>
               </div>
             </motion.div>
@@ -357,6 +394,17 @@ const DreamAnalysisPage: React.FC = () => {
                   >
                     <Palette className="h-5 w-5" />
                     <span>Dream Visualization</span>
+                  </button>
+                  <button
+                    className={`py-3 px-6 font-medium rounded-t-lg transition-all flex items-center space-x-2 ${
+                      activeTab === 'sequential' 
+                        ? 'text-white bg-white/20 border-b-2 border-indigo-400' 
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                    onClick={() => setActiveTab('sequential')}
+                  >
+                    <Split className="h-5 w-5" />
+                    <span>Sequential Story</span>
                   </button>
                 </div>
 
@@ -455,7 +503,7 @@ const DreamAnalysisPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : activeTab === 'visualization' ? (
                   <div className="h-full">
                     {/* Current Visualization */}
                     <div className="mb-8">
@@ -572,6 +620,118 @@ const DreamAnalysisPage: React.FC = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+                ) : (
+                  <div className="h-full">
+                    {/* Sequential Visualization */}
+                    <div className="mb-8">
+                      <div className="flex items-center mb-6">
+                        <Split className="h-6 w-6 text-purple-400 mr-3" />
+                        <h3 className="text-2xl font-semibold text-white">Sequential Dream Story</h3>
+                      </div>
+                      
+                      {sequentialVisualizationLoading ? (
+                        <div className="flex flex-col items-center justify-center py-16 bg-gray-800/40 rounded-xl border border-white/20">
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-400 mb-4"></div>
+                          <p className="text-gray-200 mb-2">Creating your sequential dream story...</p>
+                          <p className="text-sm text-gray-400">This may take a few moments</p>
+                        </div>
+                      ) : sequentialVisualizationError ? (
+                        <div className="p-6 bg-red-500/20 border border-red-500/40 rounded-xl">
+                          <p className="text-red-400 mb-4">Error: {sequentialVisualizationError}</p>
+                          <button 
+                            onClick={() => generateSequentialVisualizationAsync(dreamDescription)}
+                            className="px-4 py-2 bg-red-500/30 hover:bg-red-500/40 text-red-300 rounded-lg transition-colors"
+                          >
+                            Try Again
+                          </button>
+                        </div>
+                      ) : sequentialVisualization ? (
+                        <motion.div 
+                          className="space-y-8"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          {/* Part 1 */}
+                          <div className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl border border-indigo-500/30 p-6">
+                            <div className="flex items-center mb-4">
+                              <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                1
+                              </div>
+                              <h4 className="text-xl font-semibold text-white">Beginning</h4>
+                            </div>
+                            <p className="text-gray-200 mb-4">{sequentialVisualization.prompts.prompt1}</p>
+                            <img 
+                              src={sequentialVisualization.images.image1} 
+                              alt="Dream Part 1" 
+                              className="w-full h-64 object-cover rounded-lg border border-white/20"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://source.unsplash.com/random/800x400/?dream,beginning';
+                              }}
+                            />
+                          </div>
+
+                          {/* Arrow */}
+                          <div className="flex justify-center">
+                            <ArrowRight className="h-8 w-8 text-purple-400" />
+                          </div>
+
+                          {/* Part 2 */}
+                          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30 p-6">
+                            <div className="flex items-center mb-4">
+                              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                2
+                              </div>
+                              <h4 className="text-xl font-semibold text-white">Climax</h4>
+                            </div>
+                            <p className="text-gray-200 mb-4">{sequentialVisualization.prompts.prompt2}</p>
+                            <img 
+                              src={sequentialVisualization.images.image2} 
+                              alt="Dream Part 2" 
+                              className="w-full h-64 object-cover rounded-lg border border-white/20"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://source.unsplash.com/random/800x400/?dream,climax';
+                              }}
+                            />
+                          </div>
+
+                          {/* Download Buttons */}
+                          <div className="flex flex-wrap gap-3 justify-center pt-4">
+                            <motion.button
+                              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => downloadVisualization(sequentialVisualization.images.image1, `dream-part1-${new Date().toISOString().slice(0, 10)}`)}
+                            >
+                              <Download className="w-5 h-5" />
+                              Download Part 1
+                            </motion.button>
+                            <motion.button
+                              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => downloadVisualization(sequentialVisualization.images.image2, `dream-part2-${new Date().toISOString().slice(0, 10)}`)}
+                            >
+                              <Download className="w-5 h-5" />
+                              Download Part 2
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="text-center py-16 bg-gray-800/40 rounded-xl border border-white/20">
+                          <div className="mb-6 p-6 bg-gray-800/40 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
+                            <Split className="h-12 w-12 text-purple-300" />
+                          </div>
+                          <h3 className="text-2xl font-semibold text-white mb-2">No Sequential Story Yet</h3>
+                          <p className="text-gray-400 mb-4">
+                            Create a sequential dream story by describing your dream and clicking "Create Sequential Story".
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

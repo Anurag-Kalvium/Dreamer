@@ -25,6 +25,21 @@ export interface DreamVisualization {
   createdAt: string;
 }
 
+// Sequential dream visualization model
+export interface SequentialDreamVisualization {
+  id: string;
+  dream: string;
+  prompts: {
+    prompt1: string;
+    prompt2: string;
+  };
+  images: {
+    image1: string;
+    image2: string;
+  };
+  createdAt: string;
+}
+
 // Dream entry model
 export interface DreamEntry {
   id: number;
@@ -61,6 +76,12 @@ interface DreamContextType {
   generateVisualizationAsync: (dreamDescription: string, style?: string) => Promise<DreamVisualization | null>;
   downloadVisualization: (imageUrl: string, filename: string) => void;
   
+  // Sequential Visualization
+  sequentialVisualization: SequentialDreamVisualization | null;
+  sequentialVisualizationLoading: boolean;
+  sequentialVisualizationError: string | null;
+  generateSequentialVisualizationAsync: (dreamDescription: string) => Promise<SequentialDreamVisualization | null>;
+  
   // Journal
   dreamJournal: DreamEntry[];
   journalLoading: boolean;
@@ -73,6 +94,7 @@ interface DreamContextType {
   // Reset functions
   resetInterpretation: () => void;
   resetVisualization: () => void;
+  resetSequentialVisualization: () => void;
 }
 
 const DreamContext = createContext<DreamContextType | undefined>(undefined);
@@ -101,6 +123,11 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
   const [visualizationLoading, setVisualizationLoading] = useState(false);
   const [visualizationError, setVisualizationError] = useState<string | null>(null);
 
+  // State for sequential visualization
+  const [sequentialVisualization, setSequentialVisualization] = useState<SequentialDreamVisualization | null>(null);
+  const [sequentialVisualizationLoading, setSequentialVisualizationLoading] = useState(false);
+  const [sequentialVisualizationError, setSequentialVisualizationError] = useState<string | null>(null);
+
   // State for journal
   const [dreamJournal, setDreamJournal] = useState<DreamEntry[]>([]);
   const [journalLoading, setJournalLoading] = useState(false);
@@ -120,6 +147,11 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
   const resetVisualization = () => {
     setVisualization(null);
     setVisualizationError(null);
+  };
+
+  const resetSequentialVisualization = () => {
+    setSequentialVisualization(null);
+    setSequentialVisualizationError(null);
   };
 
   // Dream interpretation function - now uses backend
@@ -228,6 +260,58 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
       return null;
     } finally {
       setVisualizationLoading(false);
+    }
+  };
+
+  // Generate sequential visualization using backend API
+  const generateSequentialVisualizationAsync = async (dreamDescription: string): Promise<SequentialDreamVisualization | null> => {
+    setSequentialVisualizationLoading(true);
+    setSequentialVisualizationError(null);
+    
+    try {
+      console.log('Generating sequential visualization with description:', dreamDescription);
+      
+      // Call our backend API for sequential dream visualization
+      const response = await fetch(`${API_BASE_URL}/api/visualize-sequential`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dream: dreamDescription
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate sequential visualization');
+      }
+
+      const data = await response.json();
+      
+      // Generate a unique ID for this sequential visualization
+      const sequentialVisualizationId = `seq_vis_${Date.now()}`;
+      
+      console.log('Successfully generated sequential visualization');
+      
+      // Create the sequential visualization object
+      const newSequentialVisualization: SequentialDreamVisualization = {
+        id: sequentialVisualizationId,
+        dream: dreamDescription,
+        prompts: data.prompts,
+        images: data.images,
+        createdAt: new Date().toISOString(),
+      };
+      
+      setSequentialVisualization(newSequentialVisualization);
+      
+      return newSequentialVisualization;
+    } catch (error) {
+      console.error('Error generating sequential visualization:', error);
+      setSequentialVisualizationError('Failed to generate sequential visualization. Please try again.');
+      return null;
+    } finally {
+      setSequentialVisualizationLoading(false);
     }
   };
 
@@ -350,6 +434,12 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     generateVisualizationAsync,
     downloadVisualization,
     
+    // Sequential Visualization
+    sequentialVisualization,
+    sequentialVisualizationLoading,
+    sequentialVisualizationError,
+    generateSequentialVisualizationAsync,
+    
     // Journal
     dreamJournal,
     journalLoading,
@@ -362,6 +452,7 @@ export const DreamProvider: React.FC<DreamProviderProps> = ({ children }) => {
     // Reset functions
     resetInterpretation,
     resetVisualization,
+    resetSequentialVisualization,
   };
 
   return (

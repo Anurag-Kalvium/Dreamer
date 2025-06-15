@@ -125,7 +125,154 @@ app.post('/api/interpret', async (req, res) => {
   }
 });
 
-// Dream visualization endpoint using Hugging Face
+// Sequential dream visualization endpoint
+app.post('/api/visualize-sequential', async (req, res) => {
+  try {
+    const { dream } = req.body;
+
+    if (!dream) {
+      return res.status(400).json({ error: 'Dream description is required' });
+    }
+
+    if (!GEMINI_API_KEY || !HUGGINGFACE_API_KEY) {
+      return res.status(500).json({ error: 'API keys not configured' });
+    }
+
+    console.log('Processing sequential dream visualization for:', dream);
+
+    // Step 1: Generate two sequential prompts using Gemini
+    const promptGenerationRequest = `You are an AI image prompt generator.  
+Given a dream description, split the dream into two logical parts:
+- Part 1: The first half of the dream — the setup or beginning situation.
+- Part 2: The second half — the action, climax, or what happens next.
+
+For each part, write a visually descriptive prompt that includes:
+- Important characters, emotions, setting, and objects.
+- Clear environmental and emotional context for image generation.
+- Artistic style: dreamlike, surreal, highly detailed, vibrant colors, fantasy art
+
+Return the two prompts clearly labeled as "Prompt 1" and "Prompt 2".
+Dream: "${dream}"`;
+
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: promptGenerationRequest,
+                },
+              ],
+            },
+          ],
+        }),
+      }
+    );
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.json();
+      console.error('Gemini API Error:', errorData);
+      return res.status(geminiResponse.status).json({ 
+        error: 'Failed to generate image prompts',
+        details: errorData 
+      });
+    }
+
+    const geminiData = await geminiResponse.json();
+    const promptsText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    console.log('Generated prompts from Gemini:', promptsText);
+
+    // Parse the two prompts
+    const prompt1Match = promptsText.match(/Prompt 1[:\s]*([\s\S]*?)(?=Prompt 2|$)/i);
+    const prompt2Match = promptsText.match(/Prompt 2[:\s]*([\s\S]*?)$/i);
+
+    if (!prompt1Match || !prompt2Match) {
+      return res.status(500).json({ 
+        error: 'Failed to parse image prompts from Gemini response',
+        details: promptsText 
+      });
+    }
+
+    const prompt1 = prompt1Match[1].trim();
+    const prompt2 = prompt2Match[1].trim();
+
+    console.log('Parsed Prompt 1:', prompt1);
+    console.log('Parsed Prompt 2:', prompt2);
+
+    // Step 2: Generate images using Hugging Face
+    const generateImage = async (prompt, partNumber) => {
+      console.log(`Generating image ${partNumber} with prompt:`, prompt);
+      
+      const response = await fetch(
+        "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${HUGGINGFACE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            inputs: prompt,
+            parameters: {
+              num_inference_steps: 30,
+              guidance_scale: 7.5,
+            }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Hugging Face API Error for image ${partNumber}:`, response.status, errorText);
+        throw new Error(`Failed to generate image ${partNumber}: ${errorText}`);
+      }
+
+      const imageBuffer = await response.buffer();
+      const base64Image = imageBuffer.toString('base64');
+      return `data:image/jpeg;base64,${base64Image}`;
+    };
+
+    // Generate both images concurrently
+    const [image1, image2] = await Promise.all([
+      generateImage(prompt1, 1),
+      generateImage(prompt2, 2)
+    ]);
+
+    console.log('Successfully generated both sequential images');
+
+    // Prepare response
+    const responseData = {
+      success: true,
+      dream: dream,
+      prompts: {
+        prompt1: prompt1,
+        prompt2: prompt2
+      },
+      images: {
+        image1: image1,
+        image2: image2
+      },
+      generatedAt: new Date().toISOString()
+    };
+    
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error in sequential dream visualization:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message,
+    });
+  }
+});
+
+// Original single dream visualization endpoint (keeping for backward compatibility)
 app.post('/api/visualize', async (req, res) => {
   try {
     const { prompt, style = 'dreamlike' } = req.body;
